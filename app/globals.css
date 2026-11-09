@@ -177,6 +177,12 @@ label span { font-weight: 650; }
 
 .record-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
 
+.money-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; }
+
+fieldset { border: 0; margin: 0; padding: 0; }
+
+legend { font-weight: 650; padding: 0; }
+
 .inline { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: flex-end; }
 
 .inline label { flex: 1 1 14rem; min-width: 0; }
@@ -190,7 +196,7 @@ label span { font-weight: 650; }
 .answer { white-space: pre-wrap; }
 
 @media (max-width: 800px) {
-  .layout, .facts, .top, .record-grid { grid-template-columns: 1fr; display: grid; }
+  .layout, .facts, .top, .record-grid, .money-grid { grid-template-columns: 1fr; display: grid; }
   .top { display: grid; }
   .who { text-align: left; }
   h1 { font-size: 2rem; }

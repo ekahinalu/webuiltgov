@@ -1,4 +1,4 @@
-import { date, integer, jsonb, pgTable, primaryKey, text, timestamp, unique } from "drizzle-orm/pg-core";
+import { bigint, date, integer, jsonb, pgTable, primaryKey, text, timestamp, unique } from "drizzle-orm/pg-core";
 import type { SourceFacts } from "../domain";
 
 export const users = pgTable(
@@ -158,6 +158,43 @@ export const pursuitDrafts = pgTable(
     model: text("model").notNull(),
     draft: text("draft"),
     error: text("error"),
+    updatedBy: text("updated_by"),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.organizationId, table.opportunityId] })],
+);
+
+export const bids = pgTable(
+  "bids",
+  {
+    organizationId: text("organization_id").notNull(),
+    opportunityId: text("opportunity_id").notNull(),
+    stage: text("stage").notNull(),
+    laborLow: bigint("labor_low", { mode: "number" }),
+    laborExpected: bigint("labor_expected", { mode: "number" }),
+    laborHigh: bigint("labor_high", { mode: "number" }),
+    materialsLow: bigint("materials_low", { mode: "number" }),
+    materialsExpected: bigint("materials_expected", { mode: "number" }),
+    materialsHigh: bigint("materials_high", { mode: "number" }),
+    equipmentLow: bigint("equipment_low", { mode: "number" }),
+    equipmentExpected: bigint("equipment_expected", { mode: "number" }),
+    equipmentHigh: bigint("equipment_high", { mode: "number" }),
+    subcontractorsLow: bigint("subcontractors_low", { mode: "number" }),
+    subcontractorsExpected: bigint("subcontractors_expected", { mode: "number" }),
+    subcontractorsHigh: bigint("subcontractors_high", { mode: "number" }),
+    overheadLow: bigint("overhead_low", { mode: "number" }),
+    overheadExpected: bigint("overhead_expected", { mode: "number" }),
+    overheadHigh: bigint("overhead_high", { mode: "number" }),
+    contingencyLow: bigint("contingency_low", { mode: "number" }),
+    contingencyExpected: bigint("contingency_expected", { mode: "number" }),
+    contingencyHigh: bigint("contingency_high", { mode: "number" }),
+    profitLow: bigint("profit_low", { mode: "number" }),
+    profitExpected: bigint("profit_expected", { mode: "number" }),
+    profitHigh: bigint("profit_high", { mode: "number" }),
+    proposedPrice: bigint("proposed_price", { mode: "number" }),
+    approvedBy: text("approved_by"),
+    approvedByName: text("approved_by_name"),
+    approvedAt: timestamp("approved_at", { withTimezone: true, mode: "date" }),
     updatedBy: text("updated_by"),
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   },
