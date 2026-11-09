@@ -201,6 +201,78 @@ export const bids = pgTable(
   (table) => [primaryKey({ columns: [table.organizationId, table.opportunityId] })],
 );
 
+export const proposalSections = pgTable(
+  "proposal_sections",
+  {
+    organizationId: text("organization_id").notNull(),
+    opportunityId: text("opportunity_id").notNull(),
+    section: text("section").notNull(),
+    body: text("body"),
+    updatedBy: text("updated_by"),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.organizationId, table.opportunityId, table.section] })],
+);
+
+export const proposalInclusions = pgTable(
+  "proposal_inclusions",
+  {
+    organizationId: text("organization_id").notNull(),
+    opportunityId: text("opportunity_id").notNull(),
+    readinessId: text("readiness_id").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.organizationId, table.opportunityId, table.readinessId] })],
+);
+
+export const verifiedProjects = pgTable("verified_projects", {
+  id: text("id").primaryKey(),
+  organizationId: text("organization_id").notNull(),
+  name: text("name").notNull(),
+  client: text("client"),
+  description: text("description"),
+  completedOn: date("completed_on"),
+  updatedBy: text("updated_by"),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+});
+
+export const proposalProjects = pgTable(
+  "proposal_projects",
+  {
+    organizationId: text("organization_id").notNull(),
+    opportunityId: text("opportunity_id").notNull(),
+    projectId: text("project_id").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.organizationId, table.opportunityId, table.projectId] })],
+);
+
+export const proposalMatrix = pgTable(
+  "proposal_matrix",
+  {
+    organizationId: text("organization_id").notNull(),
+    opportunityId: text("opportunity_id").notNull(),
+    sourceKey: text("source_key").notNull(),
+    section: text("section"),
+    completion: text("completion"),
+    updatedBy: text("updated_by"),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.organizationId, table.opportunityId, table.sourceKey] })],
+);
+
+export const proposalDrafts = pgTable(
+  "proposal_drafts",
+  {
+    organizationId: text("organization_id").notNull(),
+    opportunityId: text("opportunity_id").notNull(),
+    model: text("model").notNull(),
+    draft: text("draft"),
+    error: text("error"),
+    updatedBy: text("updated_by"),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.organizationId, table.opportunityId] })],
+);
+
 export const aiAnswers = pgTable(
   "ai_answers",
   {
