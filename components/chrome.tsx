@@ -31,6 +31,7 @@ export function Shell({
   const message = noticeText(notice);
   const links = [
     ["/", "Search"],
+    ["/readiness", "Readiness"],
     ["/connectors", "Connectors"],
     ["/organization", "Organization"],
     ["/ai", "AI"],

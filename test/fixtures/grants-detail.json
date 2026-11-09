@@ -34,7 +34,24 @@
       "responseDate": "Jan 08, 2027 12:00:00 AM EST",
       "responseDateStr": "2027-01-08-00-00-00",
       "postingDate": "Nov 06, 2026 12:00:00 AM EST",
-      "lastUpdatedDate": "Nov 06, 2026 08:59:45 AM EST"
+      "lastUpdatedDate": "Nov 06, 2026 08:59:45 AM EST",
+      "costSharing": false,
+      "applicantTypes": [
+        { "id": "06", "description": "Public and State controlled institutions of higher education" },
+        { "id": "23", "description": "Small businesses" },
+        { "id": "08", "description": "Public housing authorities/Indian housing authorities" },
+        { "id": "11", "description": "Native American tribal organizations (other than Federally recognized tribal governments)" },
+        { "id": "05", "description": "Independent school districts" },
+        { "id": "02", "description": "City or township governments" },
+        { "id": "20", "description": "Private institutions of higher education" },
+        { "id": "12", "description": "Nonprofits having a 501(c)(3) status with the IRS, other than institutions of higher education" },
+        { "id": "13", "description": "Nonprofits that do not have a 501(c)(3) status with the IRS, other than institutions of higher education" },
+        { "id": "22", "description": "For profit organizations other than small businesses" },
+        { "id": "00", "description": "State governments" },
+        { "id": "07", "description": "Native American tribal governments (Federally recognized)" },
+        { "id": "01", "description": "County governments" },
+        { "id": "04", "description": "Special district governments" }
+      ]
     }
   }
 }

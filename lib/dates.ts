@@ -58,6 +58,16 @@ export function asDate(value: Date | string): Date {
   return value instanceof Date ? value : new Date(value);
 }
 
+export function utcToday(now = new Date()): string {
+  return now.toISOString().slice(0, 10);
+}
+
+export function addIsoDays(iso: string, days: number): string {
+  if (!isRealIsoDate(iso)) throw new Error("bad date");
+  const [year, month, day] = iso.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
+}
+
 export function formatSamDay(date: Date): string {
   const month = String(date.getUTCMonth() + 1).padStart(2, "0");
   const day = String(date.getUTCDate()).padStart(2, "0");

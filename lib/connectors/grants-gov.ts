@@ -21,6 +21,22 @@ function sourceId(value: unknown): string | null {
   return /^\d+$/.test(id) ? id : null;
 }
 
+function applicantTypes(value: unknown): { id: string; description: string }[] {
+  if (!Array.isArray(value)) return [];
+  const rows: { id: string; description: string }[] = [];
+  const seen = new Set<string>();
+  for (const item of value) {
+    const record = asRecord(item);
+    if (!record) continue;
+    const id = cleanText(record.id, 20);
+    const description = cleanText(record.description, 300);
+    if (!id || !/^[A-Za-z0-9_-]{1,20}$/.test(id) || !description || seen.has(id)) continue;
+    seen.add(id);
+    rows.push({ id, description });
+  }
+  return rows;
+}
+
 function cfdaNumbers(value: unknown): string[] {
   const direct = stringList(value);
   if (direct.length > 0) return direct;
@@ -120,6 +136,8 @@ export function parseGrantsDetail(payload: unknown): {
   if (sourceUpdated) facts.sourceUpdated = sourceUpdated;
   if (docType) facts.docType = docType;
   if (numbers.length > 0) facts.cfdaNumbers = numbers;
+  facts.applicantTypes = applicantTypes(synopsis?.applicantTypes);
+  if (typeof synopsis?.costSharing === "boolean") facts.costSharing = synopsis.costSharing;
   return {
     sourceId: id,
     description: cleanText(synopsis?.synopsisDesc, 20000),

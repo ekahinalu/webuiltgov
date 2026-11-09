@@ -27,6 +27,12 @@ export const NOTICES: Record<string, string> = {
   "invalid-model": "That model name is not valid.",
   "model-saved": "Model name saved for this environment.",
   "invalid-status": "Pipeline status is not recognized.",
+  "readiness-saved": "Readiness record saved. Blank fields stay blank.",
+  "readiness-removed": "Readiness record removed.",
+  "readiness-invalid": "That readiness record could not be saved.",
+  "readiness-limit": "This organization already has 80 readiness records.",
+  "eligibility-saved": "Eligibility mark saved for this organization.",
+  "eligibility-invalid": "That requirement is not on the stored source record.",
 };
 
 export function noticeText(code: string | undefined): string | null {
