@@ -1,4 +1,4 @@
-import { bigint, date, integer, jsonb, pgTable, primaryKey, text, timestamp, unique } from "drizzle-orm/pg-core";
+import { bigint, boolean, date, integer, jsonb, pgTable, primaryKey, text, timestamp, unique } from "drizzle-orm/pg-core";
 import type { SourceFacts } from "../domain";
 
 export const users = pgTable(
@@ -311,6 +311,45 @@ export const quotes = pgTable("quotes", {
   vendorId: text("vendor_id").notNull(),
   amountCents: bigint("amount_cents", { mode: "number" }).notNull(),
   covers: text("covers").notNull(),
+  createdBy: text("created_by"),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+});
+
+export const awards = pgTable(
+  "awards",
+  {
+    organizationId: text("organization_id").notNull(),
+    opportunityId: text("opportunity_id").notNull(),
+    amountCents: bigint("amount_cents", { mode: "number" }).notNull(),
+    awardedOn: date("awarded_on").notNull(),
+    source: text("source").notNull(),
+    enteredBy: text("entered_by"),
+    enteredByName: text("entered_by_name").notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true, mode: "date" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.organizationId, table.opportunityId] })],
+);
+
+export const fulfillmentProjects = pgTable(
+  "fulfillment_projects",
+  {
+    organizationId: text("organization_id").notNull(),
+    opportunityId: text("opportunity_id").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.organizationId, table.opportunityId] })],
+);
+
+export const fulfillmentItems = pgTable("fulfillment_items", {
+  id: text("id").primaryKey(),
+  organizationId: text("organization_id").notNull(),
+  opportunityId: text("opportunity_id").notNull(),
+  kind: text("kind").notNull(),
+  name: text("name").notNull(),
+  dueOn: date("due_on"),
+  completed: boolean("completed").notNull().default(false),
+  completedBy: text("completed_by"),
+  completedByName: text("completed_by_name"),
+  completedAt: timestamp("completed_at", { withTimezone: true, mode: "date" }),
   createdBy: text("created_by"),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 });

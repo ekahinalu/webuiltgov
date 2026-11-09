@@ -71,6 +71,17 @@ export const NOTICES: Record<string, string> = {
   "quote-invalid": "That quote could not be saved.",
   "quote-bid": "Open a bid before adding a vendor or quote.",
   "quote-limit": "This bid already has 80 quotes.",
+  "award-saved": "Award saved. A fulfillment project was created for this organization.",
+  "award-incomplete": "Enter an awarded amount, an award date, and a source. Nothing was saved.",
+  "award-invalid": "That award could not be saved. Nothing was saved.",
+  "award-updated": "Award record updated. The fulfillment project was left in place.",
+  "item-saved": "Fulfillment item saved. It is not marked complete.",
+  "item-name": "Enter a name for the milestone or obligation.",
+  "item-date": "That due date is not a real date. The item was not saved.",
+  "item-award": "Save an award before adding fulfillment work.",
+  "item-complete": "Completion saved.",
+  "item-invalid": "That fulfillment item could not be saved.",
+  "item-limit": "This project already has 80 milestones and obligations.",
 };
 
 export function noticeText(code: string | undefined): string | null {
