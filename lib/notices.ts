@@ -33,6 +33,12 @@ export const NOTICES: Record<string, string> = {
   "readiness-limit": "This organization already has 80 readiness records.",
   "eligibility-saved": "Eligibility mark saved for this organization.",
   "eligibility-invalid": "That requirement is not on the stored source record.",
+  "pursuit-saved": "Recommendation saved for this organization.",
+  "pursuit-reason": "Enter a reason for the recommendation.",
+  "pursuit-invalid": "That recommendation is not recognized.",
+  "pursuit-drafted": "Grok returned a draft from the stored records.",
+  "pursuit-draft-failed": "Grok did not return a draft. The stored suggestion is unchanged.",
+  "pursuit-no-key": "XAI_API_KEY is not set. Grok was not called.",
 };
 
 export function noticeText(code: string | undefined): string | null {

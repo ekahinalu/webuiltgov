@@ -137,6 +137,33 @@ export const eligibilityMarks = pgTable(
   (table) => [primaryKey({ columns: [table.organizationId, table.opportunityId, table.sourceKey] })],
 );
 
+export const pursuitDecisions = pgTable(
+  "pursuit_decisions",
+  {
+    organizationId: text("organization_id").notNull(),
+    opportunityId: text("opportunity_id").notNull(),
+    recommendation: text("recommendation").notNull(),
+    reason: text("reason").notNull(),
+    updatedBy: text("updated_by"),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.organizationId, table.opportunityId] })],
+);
+
+export const pursuitDrafts = pgTable(
+  "pursuit_drafts",
+  {
+    organizationId: text("organization_id").notNull(),
+    opportunityId: text("opportunity_id").notNull(),
+    model: text("model").notNull(),
+    draft: text("draft"),
+    error: text("error"),
+    updatedBy: text("updated_by"),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.organizationId, table.opportunityId] })],
+);
+
 export const aiAnswers = pgTable(
   "ai_answers",
   {
