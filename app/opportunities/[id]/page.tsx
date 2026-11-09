@@ -46,7 +46,7 @@ export default async function OpportunityPage({
   const deadline = formatIsoDate(record.deadline);
   return (
     <Shell principal={principal} path="/opportunities" notice={one(query.notice)}>
-      <p><Link href="/">Back to search</Link></p>
+      <p><Link href="/search">Back to search</Link></p>
       <div className="badges">
         <span className={record.recordKind === "award_notice" ? "badge warn" : "badge"}>{kind}</span>
         {levelLabel(record.governmentLevel) ? <span className="badge">{levelLabel(record.governmentLevel)}</span> : null}

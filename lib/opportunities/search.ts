@@ -169,7 +169,7 @@ export function searchHref(query: SearchQuery, page = query.page): string {
   if (query.source) params.set("source", query.source);
   if (page > 1) params.set("page", String(page));
   const text = params.toString();
-  return text ? `/?${text}` : "/";
+  return text ? `/search?${text}` : "/search";
 }
 
 export async function listAgencies(db: AppDatabase, plane: Plane): Promise<string[]> {
