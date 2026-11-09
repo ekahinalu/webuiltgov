@@ -71,11 +71,15 @@ export default async function AwardPage({
   const canEdit = hasRole(principal.role, "member");
   return (
     <Shell principal={principal} path={`/opportunities/${view.opportunityId}/award`} notice={one(query.notice)}>
-      <p><Link href={`/opportunities/${view.opportunityId}`}>Back to {view.solicitationNumber ?? view.title}</Link></p>
+      <p>
+        <Link href={`/opportunities/${view.opportunityId}`}>Back to {view.solicitationNumber ?? view.title}</Link>
+        {" · "}
+        <Link href={`/opportunities/${view.opportunityId}/invoices`}>Invoices and payments</Link>
+      </p>
       <h1>Award and fulfillment</h1>
       <p>
         {view.title} for {principal.organizationName}. An award is stored only from an amount, a date, and a source that a member types.
-        The notice is not turned into an award. No invoice is created, and the amount is not recorded as revenue.
+        The notice is not turned into an award. Saving an award does not create an invoice, and the awarded amount is not profit.
       </p>
       <section className="card">
         <h2>Award</h2>
