@@ -60,6 +60,17 @@ export const NOTICES: Record<string, string> = {
   "submission-incomplete": "Enter a confirmation number, an official destination, and a time. The bid was not marked submitted.",
   "submission-invalid": "That submission could not be saved. The bid was not marked submitted.",
   "submission-only": "A bid is marked submitted only by recording a confirmation number, destination, and time.",
+  "vendor-saved": "Vendor saved for this organization.",
+  "vendor-name": "Enter a vendor name.",
+  "vendor-invalid": "That vendor could not be saved.",
+  "vendor-limit": "This organization already has 80 vendors.",
+  "quote-saved": "Quote saved for this bid.",
+  "quote-amount": "Enter a quote amount.",
+  "quote-covers": "Enter what the quote covers.",
+  "quote-vendor": "Choose a vendor saved in this organization.",
+  "quote-invalid": "That quote could not be saved.",
+  "quote-bid": "Open a bid before adding a vendor or quote.",
+  "quote-limit": "This bid already has 80 quotes.",
 };
 
 export function noticeText(code: string | undefined): string | null {
