@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: { default: "WeBuiltGov", template: "%s · WeBuiltGov" },
-  description: "Search government opportunities synced from public sources.",
+  description: "A workspace for one organization to follow a Grants.gov funding opportunity from search through recorded payments.",
 };
 
 export const dynamic = "force-dynamic";
