@@ -82,6 +82,16 @@ export const NOTICES: Record<string, string> = {
   "item-complete": "Completion saved.",
   "item-invalid": "That fulfillment item could not be saved.",
   "item-limit": "This project already has 80 milestones and obligations.",
+  "invoice-saved": "Invoice saved. It starts unpaid.",
+  "invoice-incomplete": "Enter an invoice number and an amount. Nothing was saved.",
+  "invoice-invalid": "That invoice could not be saved.",
+  "invoice-over": "That amount is above the awarded amount already stored.",
+  "invoice-award": "Save an award before adding an invoice.",
+  "invoice-limit": "This award already has 80 invoices.",
+  "payment-saved": "Payment saved against that invoice.",
+  "payment-incomplete": "Enter a payment amount and a date. Nothing was saved.",
+  "payment-invalid": "That payment could not be saved.",
+  "payment-limit": "That invoice already has 80 payments.",
 };
 
 export function noticeText(code: string | undefined): string | null {

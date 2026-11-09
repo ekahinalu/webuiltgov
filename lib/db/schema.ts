@@ -354,6 +354,32 @@ export const fulfillmentItems = pgTable("fulfillment_items", {
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 });
 
+export const invoices = pgTable(
+  "invoices",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id").notNull(),
+    opportunityId: text("opportunity_id").notNull(),
+    number: text("number").notNull(),
+    amountCents: bigint("amount_cents", { mode: "number" }).notNull(),
+    enteredBy: text("entered_by"),
+    enteredByName: text("entered_by_name").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [unique("invoices_org_id").on(table.organizationId, table.id)],
+);
+
+export const payments = pgTable("payments", {
+  id: text("id").primaryKey(),
+  organizationId: text("organization_id").notNull(),
+  invoiceId: text("invoice_id").notNull(),
+  amountCents: bigint("amount_cents", { mode: "number" }).notNull(),
+  paidOn: date("paid_on").notNull(),
+  enteredBy: text("entered_by"),
+  enteredByName: text("entered_by_name").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+});
+
 export const aiAnswers = pgTable(
   "ai_answers",
   {
