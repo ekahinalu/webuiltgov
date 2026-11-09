@@ -1,0 +1,29 @@
+{
+  "totalRecords": 34,
+  "limit": 1,
+  "offset": 0,
+  "opportunitiesData": [
+    {
+      "noticeId": "5b345bbb7127b91a3ad577b203fc6f68",
+      "title": "Historic Office Renovation ",
+      "solicitationNumber": " 47PF0018R0023 ",
+      "department": "GENERAL SERVICES ADMINISTRATION",
+      "subTier": "PUBLIC BUILDINGS SERVICE",
+      "office": "PBS R5",
+      "postedDate": "2018-05-04",
+      "type": "Award Notice",
+      "baseType": "Combined Synopsis/Solicitation",
+      "responseDeadLine": null,
+      "naicsCode": "236220",
+      "description": "https://api.sam.gov/prod/opportunities/v1/noticedesc?noticeid=5b345bbb7127b91a3ad577b203fc6f68",
+      "placeOfPerformance": {
+        "streetAddress": "517 E Wisconsin Ave",
+        "city": { "code": "53000", "name": "Milwaukee" },
+        "state": { "code": "WI" },
+        "zip": "53202",
+        "country": { "code": "USA" }
+      },
+      "uiLink": "https://beta.sam.gov/opp/5b345bbb7127b91a3ad577b203fc6f68/view"
+    }
+  ]
+}

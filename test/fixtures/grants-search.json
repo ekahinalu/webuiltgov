@@ -1,0 +1,33 @@
+{
+  "errorcode": 0,
+  "msg": "Webservice Succeeds",
+  "data": {
+    "hitCount": 872,
+    "oppHits": [
+      {
+        "id": "363546",
+        "number": "HRSA-27-072",
+        "title": "Women's Initiative for Screening and Health (WISH)",
+        "agencyCode": "HHS-HRSA",
+        "agency": "Health Resources and Services Administration",
+        "openDate": "11/06/2026",
+        "closeDate": "01/08/2027",
+        "oppStatus": "posted",
+        "docType": "synopsis",
+        "cfdaList": ["93.110"]
+      },
+      {
+        "id": "364240",
+        "number": "DFOP0019913",
+        "title": "Strengthening Moldova&rsquo;s Energy and Trade Security",
+        "agencyCode": "DOS-EUR",
+        "agency": "Bureau of European and Eurasian Affairs",
+        "openDate": "11/06/2026",
+        "closeDate": "12/06/2026",
+        "oppStatus": "posted",
+        "docType": "synopsis",
+        "cfdaList": ["19.878"]
+      }
+    ]
+  }
+}
