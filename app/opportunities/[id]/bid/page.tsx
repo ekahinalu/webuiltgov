@@ -11,7 +11,6 @@ import {
   COST_LINES,
   describeTotal,
   fieldName,
-  LATER_BID_STAGES,
   MAIN_BID_STAGES,
   MONEY_COLUMNS,
   moneyInput,
@@ -68,7 +67,9 @@ export default async function BidPage({
               ))}
             </ol>
             <p className="meta">
-              {LATER_BID_STAGES.map((stage) => BID_STAGE_LABEL[stage]).join(" and ")} can be selected. They do not have a separate screen.
+              Closed can be selected here. Submitted is recorded on the{" "}
+              <Link href={`/opportunities/${workspace.opportunityId}/submission`}>submission page</Link>
+              {" "}and is not a choice in this form.
             </p>
             {canEdit ? (
               <form method="post" action="/api/bid" className="inline">
@@ -76,8 +77,9 @@ export default async function BidPage({
                 <input type="hidden" name="opportunityId" value={workspace.opportunityId} />
                 <label>
                   <span>Move stage</span>
-                  <select name="stage" defaultValue={bid.stage}>
-                    {BID_STAGES.map((stage) => (
+                  <select name="stage" defaultValue={bid.stage === "submitted" ? "" : bid.stage}>
+                    {bid.stage === "submitted" ? <option value="">Submitted</option> : null}
+                    {BID_STAGES.filter((stage) => stage !== "submitted").map((stage) => (
                       <option key={stage} value={stage}>{BID_STAGE_LABEL[stage]}</option>
                     ))}
                   </select>

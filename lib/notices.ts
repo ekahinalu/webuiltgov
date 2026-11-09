@@ -55,6 +55,11 @@ export const NOTICES: Record<string, string> = {
   "proposal-draft-failed": "Grok did not return a draft. Saved sections were not changed.",
   "proposal-no-key": "XAI_API_KEY is not set. Grok was not called.",
   "proposal-draft-saved": "Draft saved into the selected section.",
+  "submission-approved": "Internal approval recorded. The bid was not marked submitted.",
+  "submission-recorded": "Submission recorded from the confirmation number, destination, and time entered.",
+  "submission-incomplete": "Enter a confirmation number, an official destination, and a time. The bid was not marked submitted.",
+  "submission-invalid": "That submission could not be saved. The bid was not marked submitted.",
+  "submission-only": "A bid is marked submitted only by recording a confirmation number, destination, and time.",
 };
 
 export function noticeText(code: string | undefined): string | null {
