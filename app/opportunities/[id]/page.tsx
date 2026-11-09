@@ -111,6 +111,8 @@ export default async function OpportunityPage({
         <p style={{ marginTop: "0.8rem" }}>
           <Link href={`/opportunities/${record.id}/eligibility`}>Eligibility gate</Link>
           {" · "}
+          <Link href={`/opportunities/${record.id}/pursuit`}>Pursuit recommendation</Link>
+          {" · "}
           <Link href={`/ai?opportunity=${record.id}`}>Ask AI about this record</Link>
         </p>
       </section>

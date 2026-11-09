@@ -188,6 +188,69 @@ export async function askModel(
     });
 }
 
+const STORED_DRAFT_SYSTEM =
+  "You draft a note from stored WeBuiltGov records supplied in the user message. Cite only those fields. If a value is null, say it was not stored. Do not invent awards, competitors, credentials, past performance, or a win probability. Do not choose a recommendation.";
+
+export async function askStoredDraft(
+  db: AppDatabase,
+  principal: Principal,
+  input: { packet: unknown; fetchImpl?: FetchLike; apiKey?: string | null },
+): Promise<{ model: string; draft: string | null; error: string | null }> {
+  assertRole(principal.role, "member");
+  const apiKey = input.apiKey === undefined ? xaiKey() : input.apiKey?.trim() || null;
+  if (!apiKey) throw new AppError("missing-key", "XAI_API_KEY is not set.", 409);
+  const since = new Date(Date.now() - WINDOW_MS);
+  const recent = await db
+    .select({ id: aiRequests.id })
+    .from(aiRequests)
+    .where(and(eq(aiRequests.plane, principal.plane), eq(aiRequests.userId, principal.userId), gte(aiRequests.createdAt, since)));
+  if (recent.length >= REQUEST_LIMIT) throw new AppError("ai-limit", "AI is limited to 8 requests every 10 minutes.", 429);
+  await db.insert(aiRequests).values({
+    id: crypto.randomUUID(),
+    plane: principal.plane,
+    userId: principal.userId,
+    createdAt: new Date(),
+  });
+  const model = await getModel(db, principal.plane);
+  const fetchImpl = input.fetchImpl ?? fetch;
+  let draft: string | null = null;
+  let error: string | null = null;
+  try {
+    const response = await fetchImpl(`${XAI_BASE_URL}/chat/completions`, {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0.2,
+        max_tokens: 700,
+        messages: [
+          { role: "system", content: STORED_DRAFT_SYSTEM },
+          { role: "user", content: `Stored records:\n${JSON.stringify(input.packet)}` },
+        ],
+      }),
+      signal: AbortSignal.timeout(25000),
+      redirect: "manual",
+    });
+    const body = await response.text();
+    if (response.status < 200 || response.status >= 300) {
+      error = publicAiError(response.status, body, apiKey);
+    } else {
+      const parsed = JSON.parse(body) as { choices?: { message?: { content?: unknown } }[] };
+      const content = parsed.choices?.[0]?.message?.content;
+      if (typeof content !== "string" || content.trim() === "") error = "The model returned an empty response.";
+      else draft = content.trim().slice(0, 8000);
+    }
+  } catch (caught) {
+    const message = caught instanceof Error ? caught.message : "The AI request failed.";
+    error = redactSecret(message, apiKey) || "The AI request failed.";
+  }
+  return { model, draft, error };
+}
+
 function publicAiError(status: number, body: string, apiKey: string): string {
   const redacted = redactSecret(body, apiKey);
   if (redacted !== body || /api_key|bearer|sk-/i.test(body)) return `xAI returned HTTP ${status}.`;
