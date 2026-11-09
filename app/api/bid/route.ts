@@ -25,7 +25,9 @@ export async function POST(request: Request) {
       return redirectTo(request, `${back}?notice=bid-opened`);
     }
     if (intent === "stage") {
-      await setBidStage(db, guarded.principal, opportunityId, formValue(form, "stage"));
+      const stage = formValue(form, "stage");
+      if (stage === "") return redirectTo(request, back);
+      await setBidStage(db, guarded.principal, opportunityId, stage);
       return redirectTo(request, `${back}?notice=bid-stage`);
     }
     if (intent === "estimate") {

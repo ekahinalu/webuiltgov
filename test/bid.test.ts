@@ -87,8 +87,10 @@ describe("bid workspace", () => {
     await expect(setBidStage(db, owner, row.id, "won")).rejects.toMatchObject({ code: "bid-invalid" });
     await setBidStage(db, owner, row.id, "estimating");
     await setBidStage(db, owner, row.id, "proposal_drafting");
-    await setBidStage(db, owner, row.id, "submitted");
-    expect((await bidWorkspace(db, owner, row.id))?.bid?.stage).toBe("submitted");
+    await setBidStage(db, owner, row.id, "closed");
+    expect((await bidWorkspace(db, owner, row.id))?.bid?.stage).toBe("closed");
+    await expect(setBidStage(db, owner, row.id, "submitted")).rejects.toMatchObject({ code: "submission-only" });
+    expect((await bidWorkspace(db, owner, row.id))?.bid?.stage).toBe("closed");
     expect((await bidWorkspace(db, owner, row.id))?.pipelineStatus).toBe("pursuing");
 
     await saveBidEstimate(db, owner, row.id, { laborLow: "100", laborExpected: "12.50", materialsLow: "0", proposedPrice: "250" });

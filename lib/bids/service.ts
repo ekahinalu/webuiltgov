@@ -166,6 +166,13 @@ export async function openBid(db: AppDatabase, principal: Principal, opportunity
 
 export async function setBidStage(db: AppDatabase, principal: Principal, opportunityId: string, stage: string): Promise<void> {
   assertRole(principal.role, "member");
+  if (stage === "submitted") {
+    throw new AppError(
+      "submission-only",
+      "Record a confirmation number, destination, and time to mark a bid submitted.",
+      400,
+    );
+  }
   if (!isBidStage(stage)) throw new AppError("bid-invalid", "That bid stage is not recognized.", 400);
   const loaded = await loadBid(db, principal, opportunityId);
   if (!loaded?.row) throw new AppError("not-found", "Open a bid before setting its stage.", 404);

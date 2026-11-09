@@ -273,6 +273,24 @@ export const proposalDrafts = pgTable(
   (table) => [primaryKey({ columns: [table.organizationId, table.opportunityId] })],
 );
 
+export const submissionRecords = pgTable(
+  "submission_records",
+  {
+    organizationId: text("organization_id").notNull(),
+    opportunityId: text("opportunity_id").notNull(),
+    internalApprovedBy: text("internal_approved_by"),
+    internalApprovedByName: text("internal_approved_by_name"),
+    internalApprovedAt: timestamp("internal_approved_at", { withTimezone: true, mode: "date" }),
+    confirmationNumber: text("confirmation_number"),
+    destination: text("destination"),
+    submittedAt: timestamp("submitted_at", { withTimezone: true, mode: "date" }),
+    enteredBy: text("entered_by"),
+    enteredByName: text("entered_by_name"),
+    recordedAt: timestamp("recorded_at", { withTimezone: true, mode: "date" }),
+  },
+  (table) => [primaryKey({ columns: [table.organizationId, table.opportunityId] })],
+);
+
 export const aiAnswers = pgTable(
   "ai_answers",
   {
