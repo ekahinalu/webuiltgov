@@ -109,6 +109,34 @@ export const aiRequests = pgTable("ai_requests", {
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 });
 
+export const readinessRecords = pgTable("readiness_records", {
+  id: text("id").primaryKey(),
+  organizationId: text("organization_id").notNull(),
+  category: text("category").notNull(),
+  label: text("label"),
+  recordedValue: text("recorded_value"),
+  status: text("status"),
+  source: text("source"),
+  verifiedOn: date("verified_on"),
+  expiresOn: date("expires_on"),
+  responsiblePerson: text("responsible_person"),
+  updatedBy: text("updated_by"),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+});
+
+export const eligibilityMarks = pgTable(
+  "eligibility_marks",
+  {
+    organizationId: text("organization_id").notNull(),
+    opportunityId: text("opportunity_id").notNull(),
+    sourceKey: text("source_key").notNull(),
+    disposition: text("disposition").notNull(),
+    updatedBy: text("updated_by"),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.organizationId, table.opportunityId, table.sourceKey] })],
+);
+
 export const aiAnswers = pgTable(
   "ai_answers",
   {

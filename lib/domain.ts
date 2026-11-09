@@ -10,6 +10,11 @@ export type RecordKind = (typeof RECORD_KINDS)[number];
 export const GOVERNMENT_LEVELS = ["federal", "state", "local", "tribal"] as const;
 export type GovernmentLevel = (typeof GOVERNMENT_LEVELS)[number];
 
+export type ApplicantType = {
+  id: string;
+  description: string;
+};
+
 export type SourceFacts = {
   agencyCode?: string;
   openDate?: string;
@@ -24,6 +29,8 @@ export type SourceFacts = {
   noticeType?: string;
   descriptionUrl?: string;
   detailAttemptAt?: string;
+  applicantTypes?: ApplicantType[];
+  costSharing?: boolean;
 };
 
 export type FieldCoverage = {

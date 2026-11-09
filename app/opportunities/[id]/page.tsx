@@ -108,7 +108,11 @@ export default async function OpportunityPage({
             <button type="submit">Save</button>
           </form>
         ) : <p>Viewers can read the pipeline and cannot change it.</p>}
-        <p style={{ marginTop: "0.8rem" }}><Link href={`/ai?opportunity=${record.id}`}>Ask AI about this record</Link></p>
+        <p style={{ marginTop: "0.8rem" }}>
+          <Link href={`/opportunities/${record.id}/eligibility`}>Eligibility gate</Link>
+          {" · "}
+          <Link href={`/ai?opportunity=${record.id}`}>Ask AI about this record</Link>
+        </p>
       </section>
     </Shell>
   );

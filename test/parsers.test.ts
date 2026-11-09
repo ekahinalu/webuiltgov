@@ -55,6 +55,30 @@ describe("Grants.gov parsing", () => {
     expect(detail?.sourceFacts.department).toBe("Department of Health and Human Services");
     expect(detail?.sourceFacts.cfdaNumbers).toEqual(["93.110"]);
     expect(detail?.sourceFacts.sourceUpdated).toBe("Nov 06, 2026 08:59:45 AM EST");
+    expect(detail?.sourceFacts.costSharing).toBe(false);
+    expect(detail?.sourceFacts.applicantTypes?.map((item) => item.id)).toEqual([
+      "06", "23", "08", "11", "05", "02", "20", "12", "13", "22", "00", "07", "01", "04",
+    ]);
+    expect(detail?.sourceFacts.applicantTypes?.find((item) => item.id === "23")?.description).toBe("Small businesses");
+  });
+
+  it("does not invent applicant types or turn a cost-sharing string into a boolean", () => {
+    const detail = parseGrantsDetail({
+      errorcode: 0,
+      data: {
+        id: 1,
+        synopsis: {
+          costSharing: "false",
+          applicantTypes: [
+            { id: "23" },
+            { description: "No id" },
+            { id: "not an id", description: "Dropped" },
+          ],
+        },
+      },
+    });
+    expect(detail?.sourceFacts.applicantTypes).toEqual([]);
+    expect(detail?.sourceFacts.costSharing).toBeUndefined();
   });
 });
 
