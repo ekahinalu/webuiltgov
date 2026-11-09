@@ -20,6 +20,7 @@ import { bidWorkspace } from "../../../../lib/bids/service";
 import { formatTimestamp } from "../../../../lib/dates";
 import { getDb } from "../../../../lib/db/client";
 import { PIPELINE_LABEL } from "../../../../lib/domain";
+import { quoteWorkspace } from "../../../../lib/quotes/service";
 
 export const metadata = { title: "Bid" };
 export const dynamic = "force-dynamic";
@@ -40,8 +41,10 @@ export default async function BidPage({
   if (!principal) return <SignedOut />;
   const { id } = await params;
   const query = await searchParams;
-  const workspace = await bidWorkspace(await getDb(), principal, id);
+  const db = await getDb();
+  const workspace = await bidWorkspace(db, principal, id);
   if (!workspace) notFound();
+  const quotes = await quoteWorkspace(db, principal, id);
   const canEdit = hasRole(principal.role, "member");
   const bid = workspace.bid;
   const pipeline = workspace.pipelineStatus && workspace.pipelineStatus in PIPELINE_LABEL
@@ -98,6 +101,7 @@ export default async function BidPage({
                 <button type="submit">Open bid</button>
               </form>
             ) : <p>Viewers can read a bid and cannot open one.</p>}
+            <p>Vendors and quotes appear after a bid is open. None are added until someone types them.</p>
           </>
         )}
       </section>
@@ -180,6 +184,80 @@ export default async function BidPage({
             </form>
           ) : null}
           {canEdit ? <p className="meta">Saving a changed estimate returns an approved price to draft.</p> : null}
+        </section>
+      ) : null}
+      {bid && quotes?.bidOpen ? (
+        <section className="card" style={{ marginTop: "1rem" }}>
+          <h2>Vendors and quotes</h2>
+          <p>
+            Vendors and quotes stay in {principal.organizationName}. They are not emailed or shared outside this organization.
+            Compared by the amounts entered, lowest first.
+          </p>
+          <h3>Vendors</h3>
+          {quotes.vendors.length === 0 ? <p>No vendors are saved.</p> : null}
+          <div className="results">
+            {quotes.vendors.map((vendor) => (
+              <article key={vendor.id} className="result">
+                <h2>{vendor.name}</h2>
+                <p>Trade: {vendor.trade ?? "Not stored"}.</p>
+              </article>
+            ))}
+          </div>
+          {canEdit ? (
+            <form method="post" action="/api/quotes" className="stack" style={{ marginTop: "0.8rem" }}>
+              <input type="hidden" name="intent" value="vendor" />
+              <input type="hidden" name="opportunityId" value={workspace.opportunityId} />
+              <label>
+                <span>Vendor name</span>
+                <input name="name" maxLength={200} />
+              </label>
+              <label>
+                <span>Trade</span>
+                <input name="trade" maxLength={200} />
+              </label>
+              <button type="submit">Save vendor</button>
+            </form>
+          ) : null}
+          <h3>Quotes for this bid</h3>
+          <p>{quotes.summary}</p>
+          {quotes.quotes.length === 0 ? null : (
+            <div className="results">
+              {quotes.quotes.map((quote) => (
+                <article key={quote.id} className="result">
+                  <p>{formatMoney(quote.amountCents)}</p>
+                  <h2>{quote.vendorName}</h2>
+                  <p>Trade: {quote.trade ?? "Not stored"}.</p>
+                  <p>{quote.covers}</p>
+                </article>
+              ))}
+            </div>
+          )}
+          {canEdit && quotes.vendors.length > 0 ? (
+            <form method="post" action="/api/quotes" className="stack" style={{ marginTop: "0.8rem" }}>
+              <input type="hidden" name="intent" value="quote" />
+              <input type="hidden" name="opportunityId" value={workspace.opportunityId} />
+              <label>
+                <span>Vendor</span>
+                <select name="vendorId" defaultValue="">
+                  <option value="">Choose a saved vendor</option>
+                  {quotes.vendors.map((vendor) => (
+                    <option key={vendor.id} value={vendor.id}>{vendor.trade ? `${vendor.name}, ${vendor.trade}` : vendor.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>Amount</span>
+                <input name="amount" inputMode="decimal" />
+              </label>
+              <label>
+                <span>What it covers</span>
+                <input name="covers" maxLength={500} />
+              </label>
+              <button type="submit">Save quote</button>
+            </form>
+          ) : null}
+          {canEdit && quotes.vendors.length === 0 ? <p>Add a vendor before entering a quote.</p> : null}
+          {!canEdit ? <p>Viewers can read vendors and quotes and cannot add them.</p> : null}
         </section>
       ) : null}
     </Shell>

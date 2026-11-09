@@ -291,6 +291,30 @@ export const submissionRecords = pgTable(
   (table) => [primaryKey({ columns: [table.organizationId, table.opportunityId] })],
 );
 
+export const vendors = pgTable(
+  "vendors",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id").notNull(),
+    name: text("name").notNull(),
+    trade: text("trade"),
+    createdBy: text("created_by"),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [unique("vendors_org_id").on(table.organizationId, table.id)],
+);
+
+export const quotes = pgTable("quotes", {
+  id: text("id").primaryKey(),
+  organizationId: text("organization_id").notNull(),
+  opportunityId: text("opportunity_id").notNull(),
+  vendorId: text("vendor_id").notNull(),
+  amountCents: bigint("amount_cents", { mode: "number" }).notNull(),
+  covers: text("covers").notNull(),
+  createdBy: text("created_by"),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+});
+
 export const aiAnswers = pgTable(
   "ai_answers",
   {
