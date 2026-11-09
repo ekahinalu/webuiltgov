@@ -194,7 +194,7 @@ const STORED_DRAFT_SYSTEM =
 export async function askStoredDraft(
   db: AppDatabase,
   principal: Principal,
-  input: { packet: unknown; fetchImpl?: FetchLike; apiKey?: string | null },
+  input: { packet: unknown; fetchImpl?: FetchLike; apiKey?: string | null; instructions?: string },
 ): Promise<{ model: string; draft: string | null; error: string | null }> {
   assertRole(principal.role, "member");
   const apiKey = input.apiKey === undefined ? xaiKey() : input.apiKey?.trim() || null;
@@ -228,7 +228,7 @@ export async function askStoredDraft(
         temperature: 0.2,
         max_tokens: 700,
         messages: [
-          { role: "system", content: STORED_DRAFT_SYSTEM },
+          { role: "system", content: input.instructions?.trim() || STORED_DRAFT_SYSTEM },
           { role: "user", content: `Stored records:\n${JSON.stringify(input.packet)}` },
         ],
       }),

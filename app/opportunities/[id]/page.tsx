@@ -115,6 +115,8 @@ export default async function OpportunityPage({
           {" · "}
           <Link href={`/opportunities/${record.id}/bid`}>Bid workspace</Link>
           {" · "}
+          <Link href={`/opportunities/${record.id}/proposal`}>Proposal</Link>
+          {" · "}
           <Link href={`/ai?opportunity=${record.id}`}>Ask AI about this record</Link>
         </p>
       </section>

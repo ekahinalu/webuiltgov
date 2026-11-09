@@ -45,6 +45,16 @@ export const NOTICES: Record<string, string> = {
   "bid-approved": "Proposed price approved for this organization.",
   "bid-invalid": "That bid update could not be saved.",
   "bid-price": "Enter a proposed price before approving it.",
+  "proposal-saved": "Proposal section saved. Empty text stays empty.",
+  "proposal-invalid": "That proposal update could not be saved.",
+  "proposal-included": "Included in past performance.",
+  "proposal-removed": "Removed from past performance.",
+  "proposal-project": "Verified project saved.",
+  "proposal-matrix": "Requirement line saved.",
+  "proposal-drafted": "Grok returned a draft from the stored records. It is not saved into a section.",
+  "proposal-draft-failed": "Grok did not return a draft. Saved sections were not changed.",
+  "proposal-no-key": "XAI_API_KEY is not set. Grok was not called.",
+  "proposal-draft-saved": "Draft saved into the selected section.",
 };
 
 export function noticeText(code: string | undefined): string | null {
