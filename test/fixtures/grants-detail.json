@@ -1,0 +1,40 @@
+{
+  "errorcode": 0,
+  "msg": "Webservice Succeeds",
+  "data": {
+    "id": 363546,
+    "opportunityNumber": "HRSA-27-072",
+    "opportunityTitle": "Women's Initiative for Screening and Health (WISH)",
+    "owningAgencyCode": "HHS-HRSA",
+    "agencyDetails": {
+      "code": "HRSA",
+      "agencyName": "Health Resources and Services Administration",
+      "agencyCode": "HHS-HRSA",
+      "topAgencyCode": "HHS"
+    },
+    "topAgencyDetails": {
+      "agencyName": "Department of Health and Human Services",
+      "agencyCode": "HHS"
+    },
+    "docType": "synopsis",
+    "originalDueDate": "Jan 08, 2027 12:00:00 AM EST",
+    "cfdas": [
+      {
+        "id": 434987,
+        "opportunityId": 363546,
+        "cfdaNumber": "93.110",
+        "programTitle": "Special Projects of Regional and National Significance"
+      }
+    ],
+    "synopsis": {
+      "opportunityId": 363546,
+      "agencyCode": "HHS-HRSA",
+      "agencyName": "Health Resources and Services Administration",
+      "synopsisDesc": "<p>The purpose of Women's Initiative for Screening and Health (WISH) is to improve women’s health across the lifespan by increasing access to and availability of preventive health services. Through a multidisciplinary coalition of healthcare providers, academic institutions, and patient-centered organizations, WISH drives a comprehensive strategy to: (1) review and recommend evidence-based updates to the HRSA-supported women’s preventive service guidelines (Guidelines), (2) raise awareness and knowledge of the (Guidelines), and (3) increase adoption and use of the Guidelines in clinical practice.&nbsp;</p>",
+      "responseDate": "Jan 08, 2027 12:00:00 AM EST",
+      "responseDateStr": "2027-01-08-00-00-00",
+      "postingDate": "Nov 06, 2026 12:00:00 AM EST",
+      "lastUpdatedDate": "Nov 06, 2026 08:59:45 AM EST"
+    }
+  }
+}
