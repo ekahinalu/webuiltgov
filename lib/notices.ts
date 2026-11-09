@@ -39,6 +39,12 @@ export const NOTICES: Record<string, string> = {
   "pursuit-drafted": "Grok returned a draft from the stored records.",
   "pursuit-draft-failed": "Grok did not return a draft. The stored suggestion is unchanged.",
   "pursuit-no-key": "XAI_API_KEY is not set. Grok was not called.",
+  "bid-opened": "Bid opened for this organization. No costs were added.",
+  "bid-stage": "Bid stage saved.",
+  "bid-saved": "Estimate saved. Blank amounts stay blank.",
+  "bid-approved": "Proposed price approved for this organization.",
+  "bid-invalid": "That bid update could not be saved.",
+  "bid-price": "Enter a proposed price before approving it.",
 };
 
 export function noticeText(code: string | undefined): string | null {
