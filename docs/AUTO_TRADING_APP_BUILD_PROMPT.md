@@ -780,6 +780,408 @@ Do not start Phase 4 until Phase 2 paper approve→fill works. Do not enable liv
 
 ---
 
+## ASCII WIREFRAMES (IMPLEMENT LITERALLY)
+
+### Marketing hero (desktop)
+```text
+┌──────────────────────────────────────────────────────────────┐
+│ TradeDesk          Platform   Risk   Sign in   [Start paper] │
+│████████████████ FULL-BLEED ATMOSPHERE ████████████████████████│
+│                                                              │
+│   TradeDesk                                                  │
+│   Your trading desk, handled.                                │
+│   Desk proposes from your system and TradingView.            │
+│   You approve. Alpaca executes. Every fill is logged.        │
+│                                                              │
+│   [ Start paper desk ]    See how approvals work →           │
+│                                                              │
+│██████████████████████████████████████████████████████████████│
+└──────────────────────────────────────────────────────────────┘
+```
+Forbidden in this frame: KPI tiles, schedule, “this week,” address, promo chips, inset image card.
+
+### App home (desktop)
+```text
+┌─────┬────────────────────────────────────────────────────────┐
+│ TD  │ PAPER · BP $98,420 · Option L2            [Kill] [⌘K] │
+│Home │                                                        │
+│Appr*│ Needs your attention                                   │
+│Pos  │ • Approve ORB call AAPL 2ct — waiting 4m   [Open]      │
+│Blot │ • Broker reject SPY put — option BP        [Open]      │
+│Strat│ • Daily loss 72% of limit — ORB still Armed [Review]   │
+│Train│                                                        │
+│Anal │ Today                                                  │
+│Jour │ Realized +$420   uPnL −$80   Fills 6                   │
+│Conn │                                                        │
+│Set  │ Open risk (3)                     Analytics snapshot   │
+│     │ AAPL 230C  +$120                  Today +420 · WR 58%  │
+│     │ …                                 Drawdown −3.2%  →    │
+└─────┴────────────────────────────────────────────────────────┘
+```
+
+### Approval focus (modal or dedicated row expand)
+```text
+┌─────────────────────────────────────────────┐
+│ Desk · Needs your approval                  │
+│ Submit this paper order?                    │
+│                                             │
+│ Strategy   ORB Calls · Draft                │
+│ Signal     TradingView · 11:04:02 MT        │
+│ Intent     BUY CALL AAPL 230C 11/21 · 2     │
+│            LIMIT 1.85 · debit ~$370         │
+│ Max loss   $370 if expires worthless        │
+│ Risk       ✓ size ✓ BP ✓ hours ✓ not naked  │
+│ Context    System Bible v3 · ORB v12        │
+│                                             │
+│ [ Approve order ]     [ Not now ]           │
+│ id appr_01H… · expires in 14:22             │
+└─────────────────────────────────────────────┘
+```
+
+### Train editor (desktop)
+```text
+┌──────────────┬──────────────────────┬─────────────────────┐
+│ Packs / Docs │ Markdown editor      │ Active window       │
+│ 00 bible *   │ # ORB Calls          │ Budget 41.2 / 64k   │
+│ 01 entry     │ ...                  │ ████████░░ 64%      │
+│ 02 exits     │                      │ 1. Bible   4.2k     │
+│ …            │                      │ 2. Entry   6.1k     │
+│              │ [Save version]       │ 3. Lessons 12.0k    │
+│              │                      │ 4. Snapshot 1.1k    │
+│              │                      │ [Simulate signal]   │
+└──────────────┴──────────────────────┴─────────────────────┘
+```
+
+### Analytics
+```text
+Range [30D ▾]  Env [Paper ▾]  [Filters]  [Export]
+Net +4,820  WR 57%  PF 1.8  Exp +$62  MaxDD −6.1%
+[ equity curve ========================= ]
+[ daily bars ||| | ||||| ||| ]
+Breakdown by strategy                    Trade table…
+```
+
+---
+
+## COMPONENT ANATOMY (ENGINEERING NOTES)
+
+### `<EnvBadge />`
+- Props: `env: 'paper' | 'live'`
+- PAPER → `--paper-badge` bg, white text, label `PAPER`
+- LIVE → `--danger` bg, white text, label `LIVE · REAL MONEY`
+- Always visible in app chrome; also on landing only after sign-in strip if logged in
+
+### `<AttentionList />`
+- Items sorted: pending approvals (oldest first), broker rejects (newest first), risk warnings
+- Each row: title, meta, age, primary deep link
+- Empty: `Nothing needs you right now.` + last journal event link
+
+### `<ModeBadge />`
+- off / draft / armed visual tokens per Design System
+- Armed shows 6px accent dot with 1.2s opacity pulse (disabled under reduced motion)
+
+### `<MonoMoney />`
+- IBM Plex Mono tabular nums
+- Sign-aware color: positive `--accent`, negative `--danger`, zero muted
+- Always show sign for non-zero; currency format USD
+
+### `<ContextBudgetMeter />`
+- Linear bar + numeric `used / cap`
+- Warning at ≥85%; error styling at ≥100% with truncation policy text
+- Tooltip lists slices
+
+### `<ReceiptStack />`
+- Newest first; sticky date headers
+- Expandable payload; copy id button
+
+### `<KillSwitchButton />`
+- Looks like text danger control, not giant red candy button (avoid panic misclicks AND avoid looking like a game)
+- Opens `<ConfirmPanel />` with explicit checkboxes
+
+---
+
+## MICROCOPY LIBRARY (USE VERBATIM WHERE POSSIBLE)
+
+### Buttons
+- Start paper desk
+- Approve order
+- Not now
+- Arm strategy
+- Disarm
+- Save version
+- Run simulation
+- Correct / Almost / Wrong
+- Export CSV
+- Enable live trading
+- Rotate webhook secret
+- Reconcile now
+- Add to Train examples
+
+### Status
+- Waiting for your approval
+- Approved — submitting to Alpaca
+- Filled
+- Partially filled
+- Canceled
+- Broker rejected
+- Expired — signal stale
+- Disarmed by kill switch
+- Auto-disarmed — max daily loss
+
+### Errors (human, specific)
+- `TradingView secret did not match. Signal was not stored as tradable.`
+- `Could not parse option expiry. Expected YYYY-MM-DD.`
+- `Order size 12 exceeds strategy max 5 contracts.`
+- `Buying power ~$210 is below estimated debit $370.`
+- `Strategy is Off. Turn on Draft to propose, or Arm to auto-execute.`
+- `Context window over budget. Lessons truncated; System Bible kept.`
+- `Live trading is off. Type ENABLE LIVE in Settings to continue.`
+- `Flatten requires typing FLATTEN. Positions not changed.`
+
+### Empty states
+- Approvals: `No pending approvals. Draft proposals and Armed Auto checks will land here.`
+- Train: `Paste your system rules to teach Desk how you trade.`
+- Analytics: `Analytics appear after fills. Run paper trades or open Sample.`
+- Connections: `Connect Alpaca paper to place orders. Keys are encrypted at rest.`
+
+---
+
+## EDGE CASES & PRODUCT RULES
+
+1. **Duplicate webhooks:** same fingerprint within 60s → audit `signal_suppressed`, no second order.
+2. **Partial fills:** journal each fill; position avg updates; approval not re-requested.
+3. **Replace intent:** new signal for same strategy+symbol while pending approval → supersede old approval (`superseded`), new card.
+4. **Alpaca down:** order_submit fails → Needs attention + retry button (creates new client_order_id suffix `-r2`).
+5. **Clock skew:** store UTC; display America/Denver for this product owner by default with timezone in Settings.
+6. **Option expiration day:** if signal opens expiring-today contract, approval shows caution `Expires today`.
+7. **Short locate unknown:** approval shows caution; user can still approve on paper; live may broker-reject.
+8. **Context edit while Armed:** banner `Editing will not affect Armed strategies until you re-arm.`; save still versions pack.
+9. **Delete pack in use:** blocked; must unbind strategies first.
+10. **LLM timeout:** fallback proposal = deterministic normalize-only intent without narrative; still requires approval in Draft.
+11. **User rejects:** store reason optional; signal terminal; no order.
+12. **Multiple accounts:** v1 one paper + one live credential pair per user max.
+13. **CSV upload examples:** map columns `symbol,side,right,strike,expiry,qty,entry,exit,notes,label`; bad rows skipped with count toast.
+14. **Daylight session gate:** use `America/New_York` for RTH 09:30–16:00 regardless of display TZ.
+15. **P&L accounting:** realized on closing fill; fees subtract; analytics mark-to-market unrealized from last snapshot.
+
+---
+
+## SEED / DEMO DATA (REQUIRED)
+
+### Context Pack `Demo ORB`
+- Bible: trade opening range breakout on liquid names; no earnings day; max 2 contracts; RTH only; calls on upside break, puts on downside; stop = range width; target 1.5R.
+- Three example wins, two skips (earnings, wide spread).
+- TV map documenting JSON fields.
+
+### Sample journal (fictional)
+- 12 audit events across signal→fill for AAPL call and a reject on low BP.
+- Analytics sample rollups for last 10 weekdays.
+
+All sample UI must show `Sample` + `Fictional sample data`.
+
+---
+
+## DETAILED USER FLOWS
+
+### Flow A — First paper fill (happy path)
+1. Sign up → ack risk → connect Alpaca paper (test OK)
+2. Train: paste system → Save version v1
+3. Strategies: create ORB · Draft · bind pack · copy webhook
+4. TV alert fires → Attention badge +1 → approval card
+5. User Approve → order submitted → fill receipt → blotter row
+6. Analytics updates within 60s (or on demand recompute)
+7. User Add to Train examples from receipt
+
+### Flow B — Armed Auto
+1. Strategy Draft proven with ≥1 successful paper fill (soft nudge, not hard block)
+2. Arm modal checklist + type name
+3. TV signal → risk pass → submit without approval
+4. Receipt `order_submitted` actor=system; Attention only if reject/breach
+5. Daily loss breach → auto-disarm + Attention
+
+### Flow C — Train correction
+1. Simulate signal that should be skipped (earnings)
+2. Desk proposes buy → user Wrong + note “No earnings day trades”
+3. Lesson appended
+4. Same simulation → Desk returns `No trade` proposal with citation to lesson
+5. No Alpaca call
+
+### Flow D — Kill switch
+1. User opens Kill
+2. Checks Disarm all + Cancel open orders → confirm
+3. All strategies Off/Draft; cancel API invoked; receipts written
+4. Flatten remains unchecked unless typed `FLATTEN`
+
+### Flow E — Enable live
+1. Settings → Enable live
+2. Must have Alpaca live credentials tested
+3. Type `ENABLE LIVE` + ack “real money”
+4. Env badge flips; all strategies forced to Off; user re-arms deliberately
+
+---
+
+## FORM VALIDATION RULES
+
+| Field | Rule |
+|---|---|
+| Strategy name | 2–48 chars, unique per user |
+| Symbols | Uppercase tickers `[A-Z]{1,6}` or `*` |
+| Max daily loss | > 0 |
+| Max contracts | integer 1–100 in v1 |
+| Limit price | > 0 if orderType=limit |
+| Webhook secret | ≥24 chars random; shown once on rotate |
+| Confirm live | exact `ENABLE LIVE` |
+| Confirm flatten | exact `FLATTEN` |
+| Pack name | 2–64 chars |
+
+Inline errors under fields; do not use only toasts for validation.
+
+---
+
+## DESK TOOLING (ASSISTANT CAPABILITIES)
+
+Desk may call tools (server-side) limited to:
+- `get_account_snapshot`
+- `get_open_positions`
+- `get_analytics_summary`
+- `list_attention_items`
+- `create_order_proposal` → always returns approval in Draft; Armed only if strategy armed and user said “execute under armed rules” AND gates pass
+- `disarm_strategy` / `disarm_all` (receipt; kill-level flatten still separate)
+- `search_journal`
+
+Desk must refuse: tax advice, guaranteed profit claims, changing live env without Settings confirm UI.
+
+---
+
+## OPTION SYMBOL HANDLING
+
+- User/TV may pass strike/expiry/right; system builds Alpaca option symbol
+- Display format: `AAPL 230C 2026-11-21`
+- Store both display and broker symbol
+- Reject if expiry parse fails or strike not numeric
+- v1: American equity options only; no index special cases beyond what Alpaca accepts (surface broker error if any)
+
+---
+
+## SHORT STOCK HANDLING
+
+- Side `sell` / `short` when flat → short open; when long → sell to reduce (normalize carefully using position snapshot)
+- Approval must say `SHORT` explicitly in title when opening short
+- Cover = buy to close short; label `COVER`
+
+---
+
+## NOTIFICATIONS (V1)
+
+- In-app Attention only (no email/SMS required)
+- Optional browser Notification API permission after first approval pending (soft prompt once)
+- No marketing push
+
+---
+
+## LOGGING & OBSERVABILITY
+
+- Structured logs: `request_id`, `user_id`, `strategy_id`, `signal_id`
+- Never log secret, raw API keys, or full LLM prompts containing keys
+- Metrics counters: webhook_received, approval_pending, orders_submitted, orders_rejected, kill_switch
+- Error tracking optional (Sentry) behind env flag
+
+---
+
+## README OUTLINE (WRITE THIS FILE)
+
+1. What TradeDesk is / is not
+2. Architecture diagram (mermaid)
+3. Prerequisites (Node 20+, Postgres 15+, Alpaca paper)
+4. `.env` table
+5. `pnpm i && pnpm db:migrate && pnpm dev`
+6. TradingView alert setup steps with JSON
+7. Paper checklist Flow A
+8. Train loop
+9. Test commands
+10. Risk disclosure pointer
+
+---
+
+## .ENV.EXAMPLE KEYS
+
+```bash
+DATABASE_URL=
+AUTH_SECRET=
+APP_URL=http://localhost:3000
+CREDENTIALS_KEK=
+ALPACA_PAPER_KEY_ID=
+ALPACA_PAPER_SECRET=
+ALPACA_LIVE_KEY_ID=
+ALPACA_LIVE_SECRET=
+ALPACA_DATA_URL=
+LLM_API_KEY=
+LLM_MODEL=
+CONTEXT_TOKEN_SOFT_CAP=64000
+DEFAULT_APPROVAL_TTL_SECONDS=900
+SIGNAL_DEDUP_SECONDS=60
+ENABLE_LIVE_FEATURE=false
+SENTRY_DSN=
+```
+
+---
+
+## DEFINITION OF DONE (PER PR)
+
+A PR is done only if:
+- Types pass
+- Targeted tests for touched risk/train/analytics pass
+- No new banned visual pattern
+- Journal event exists for any new mutating trade path
+- README updated if env or flow changed
+- Screenshots or short notes for UI PRs (landing, approval, train meter)
+
+---
+
+## DESIGN QA CHECKLIST (BEFORE CALLING UI DONE)
+
+- [ ] Brand wordmark is the loudest text in hero
+- [ ] Hero has no stats/schedules/chips/overlays
+- [ ] Cards only around approvals/confirms/forms
+- [ ] Fonts are Syne + Source Sans 3 + IBM Plex Mono
+- [ ] Colors match tokens; no purple primary; no cream/terracotta kit
+- [ ] Sample labels present on fictional data
+- [ ] PAPER/LIVE badge visible in app
+- [ ] Reduced motion respected
+- [ ] Mobile bottom tabs work; Approve still thumb-reachable
+- [ ] Mono numbers align in blotter columns
+- [ ] Focus states visible
+- [ ] Empty states use microcopy library
+
+---
+
+## ENGINEERING QA CHECKLIST
+
+- [ ] Webhook ACK fast + async process
+- [ ] Idempotent client_order_id uniqueness enforced in DB
+- [ ] Secrets encrypted; last4 only in UI
+- [ ] Risk gates unit-tested individually
+- [ ] Context freeze hash on arm verified
+- [ ] Analytics rollups recomputable from fills (no drift)
+- [ ] Paper/live query paths isolated by default
+- [ ] Kill switch audited
+- [ ] Live enable exact-string gated
+- [ ] Playwright smoke for Flow A
+
+---
+
+## NON-GOALS RESTATED (DO NOT BUILD IN V1)
+
+Multi-broker, multi-leg spreads, social feed, mobile native, PDF OCR, weight fine-tuning, tax lot engine, dark theme, billing/paywall (unless later asked), SMS Desk, prop-firm rules engine, backtester full platform (simulate signal only).
+
+---
+
+## HANDOFF NOTE TO FUTURE AGENTS
+
+If the human pastes a trading system, convert it into `Demo`→user pack documents using the Train template headings; do not bury rules only in chat history. If the human provides Alpaca/TV credentials, put them in env/secret store — never commit them. Prefer extending this prompt over inventing a parallel product bible.
+
+---
+
 ## CREDENTIALS
 
 Human provides later: Alpaca paper (then live) keys, TradingView alert setup, LLM API key.  
@@ -790,3 +1192,5 @@ Human provides later: Alpaca paper (then live) keys, TradingView alert setup, LL
 ## FINAL INSTRUCTION TO THE BUILDER
 
 Execute as a contract engineer and principal designer. Ship Phase 0→6 in small commits. Prefer deleting chrome over adding widgets. When unsure, copy WeBuilt’s approval/receipt posture and apply it to orders. Charts are subordinate to triage, approvals, trainability, and truth in the journal.
+
+You are not done when the pages render. You are done when Flow A works on paper, Train corrections stick, Analytics match the journal, and the UI would not be mistaken for a generic AI crypto dashboard.
