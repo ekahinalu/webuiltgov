@@ -20,7 +20,9 @@ You will design and implement end-to-end. Prefer opinionated defaults over confi
 
 **TradeDesk** — Your trading desk, handled. Signals arrive. The desk proposes. You approve. Alpaca executes. Everything is logged, trainable, and measurable — until you graduate to **your own trading model** in Model Lab.
 
-Analog: getwebuilt.com’s Studly, but for **options calls/puts, equity longs, and shorts** — not contractors.
+Analog: getwebuilt.com’s Studly, but for **stocks (long/short), single-leg options (calls/puts), and crypto** — not contractors.
+
+**Asset classes in scope (mandatory):** `stock` · `option` · `crypto` — all via Alpaca where supported. Strategies declare which classes they may trade; analytics, Train, and Model Lab slice by asset class.
 
 ---
 
@@ -44,7 +46,7 @@ Analog: getwebuilt.com’s Studly, but for **options calls/puts, equity longs, a
 ### Visual / brand
 - Purple-on-white or purple→indigo gradients
 - Warm cream `#F4F1EA` + terracotta + high-contrast serif broadsheet
-- Dark-mode-by-default “crypto terminal”
+- Dark-mode-by-default “crypto casino terminal” UI (crypto **trading** is in scope; neon terminal chrome is not)
 - Neon glow, glassmorphism stacks, multi-layer shadows
 - Rounded-full pill clusters, emoji as UI, icon rows as decoration
 - Inter, Roboto, Arial, system-ui as primary brand fonts
@@ -168,7 +170,7 @@ Contains ONLY:
 4. CTA group: primary `Start paper desk` → `/app` onboarding; secondary `See how approvals work` → scroll
 5. Full-bleed atmospheric background: cool mist→sage depth gradient + subtle desk/chart texture (photographic or abstract market grain). Edge-to-edge. **No** inset image card, **no** floating badges on the media, **no** stats in the hero.
 
-Eyebrow allowed only if it does not overpower brand: `Paper-first · Alpaca · TradingView`
+Eyebrow allowed only if it does not overpower brand: `Paper-first · Stocks · Options · Crypto · Alpaca · TradingView`
 
 ### Section — Sample approval (Studly pattern)
 Labeled `Desk · Needs your approval` + `Sample`
@@ -295,11 +297,15 @@ Mode badges: `Off` (muted) · `Draft` (caution) · `Armed Auto` (accent with pul
 
 ### Create / Edit form (one column, progressive)
 1. Name
-2. Allowed sides: long equity, short equity, buy calls, buy puts, sell calls, sell puts (sell defaults OFF)
-3. Universe: symbols list or `*` with denylist
-4. Sizing: fixed qty | fixed `$` risk | `%` equity (pick one primary)
-5. Caps: max notional/order, max contracts/shares, max open positions, max daily loss `$`
-6. Schedule: RTH only (default ON), optional extended
+2. **Asset classes** (multi-select): `stock` · `option` · `crypto` (at least one required)
+3. Allowed sides (shown per enabled class):
+   - Stock: buy, sell, short, cover
+   - Option: buy call, buy put, sell call, sell put (sell defaults OFF)
+   - Crypto: buy, sell (no traditional hard-to-borrow short unless Alpaca product supports; label clearly)
+4. Universe: symbols list or `*` with denylist — stocks `AAPL`, options via underlying+contract fields, crypto `BTC/USD` (normalize aliases `BTCUSD` → `BTC/USD`)
+5. Sizing: fixed qty | fixed `$` risk | `%` equity (pick one primary); crypto may use notional `$` buy as first-class
+6. Caps: max notional/order, max shares, max option contracts, max crypto qty/notional, max open positions **per class**, max daily loss `$` (global + optional per-class)
+7. Schedule: stocks/options default RTH ON (optional extended); **crypto default 24/7** with optional quiet hours / weekend throttle
 7. TradingView webhook path (read-only URL after create) + rotate secret
 8. Context Pack multi-select (order = priority after System Bible)
 9. Mode control (Off/Draft/Armed) — Arming requires risk ack checkbox
@@ -372,7 +378,7 @@ From any closed trade receipt: `Add to Train` → choose pack + good/skip + note
 ### Header controls
 - Range: Today · WTD · MTD · 30D · Custom · All
 - Environment: Paper | Live | Combine (explicit)
-- Filters drawer: strategy, pack version, symbol, side, mode, session
+- Filters drawer: **asset class** (stock/option/crypto), strategy, pack version, symbol/pair, side, mode, session
 
 ### KPI row (definition list, not cards)
 Net realized · Unrealized · Fees · Win rate · Profit factor · Expectancy · Max DD · Current DD · Trades · Avg hold · Avg R · Median approval latency
@@ -413,7 +419,7 @@ Filterable infinite list of audit events; expand raw JSON; export CSV; deep link
 Orders + fills; status chips; cancel button when cancelable; link to Alpaca id
 
 ### Positions
-Underlying, instrument (incl. option OCC symbol), qty, avg, mark, uPnL, strategy tag if known, flatten action (approval)
+Grouped or filterable by asset class. Columns: class, symbol/instrument (stock ticker · option OCC display · crypto pair), qty, avg, mark, uPnL, strategy tag if known, flatten/close action (approval). Crypto shows pair `BTC/USD` and fractional qty.
 
 ---
 
@@ -422,8 +428,9 @@ Underlying, instrument (incl. option OCC symbol), qty, avg, mark, uPnL, strategy
 ### Alpaca
 - API Key ID + Secret (write-only after save; show last4)
 - Base URL paper/live tied to env
-- Test connection → account status, BP, option level, shorting enabled
-- Reconcile now
+- Test connection → account status, stock BP, option level, shorting enabled, **crypto status / crypto buying power** if available
+- Capability badges: `Stocks` · `Options` · `Crypto` (grey out classes account cannot trade)
+- Reconcile now (stocks + options + crypto positions/orders)
 
 ### TradingView
 - Per-strategy webhook URL
@@ -461,6 +468,7 @@ api_credentials
 
 strategies
   id, user_id, name, mode enum('off','draft','armed'),
+  asset_classes text[]  -- subset of stock|option|crypto
   allowed_sides jsonb, symbols jsonb, sizing jsonb, caps jsonb,
   schedule jsonb, webhook_secret_hash, context_pack_ids uuid[],
   frozen_context_hash text null, created_at, updated_at
@@ -564,31 +572,50 @@ submit_alpaca
 
 Risk gates (all must pass):
 1. Env + strategy mode allow
-2. Side allowed
-3. Symbol allowed
-4. Notional ≤ max
-5. Qty ≤ max contracts/shares
-6. Open risk ≤ max
-7. Daily loss < max (else auto-disarm + alert)
-8. Session/hours gate
-9. Duplicate fingerprint suppression window (default 60s)
-10. Naked short options blocked unless enabled + account approved
-11. Option level sufficient
-12. Buying power sufficient (estimate)
+2. `assetClass` allowed on strategy (`stock` | `option` | `crypto`)
+3. Side allowed for that class
+4. Symbol / pair allowed
+5. Notional ≤ max (class-specific cap if set)
+6. Qty ≤ max shares / contracts / crypto qty
+7. Open risk ≤ max (global + per-class open count)
+8. Daily loss < max (else auto-disarm + alert); optional per-class daily loss
+9. Session/hours gate — RTH for stock/option by default; crypto 24/7 unless quiet hours set
+10. Duplicate fingerprint suppression window (default 60s)
+11. Naked short options blocked unless enabled + account approved
+12. Option level sufficient (options only)
+13. Buying power / crypto BP sufficient (estimate)
+14. Crypto pair on allowlist and Alpaca-tradable
 
 ---
 
 ## TRADINGVIEW PAYLOAD CONTRACT
 
-Recommended alert JSON:
+All alerts MUST include `assetClass`: `stock` | `option` | `crypto`.
 
+### Stock
 ```json
 {
   "secret": "{{strategy_secret}}",
+  "assetClass": "stock",
   "action": "open",
   "symbol": "AAPL",
   "side": "buy",
-  "instrument": "option",
+  "qty": 100,
+  "orderType": "limit",
+  "limitPrice": 190.5,
+  "strategyKey": "orb-equity",
+  "tv_alert_id": "{{alert_id}}"
+}
+```
+
+### Option
+```json
+{
+  "secret": "{{strategy_secret}}",
+  "assetClass": "option",
+  "action": "open",
+  "symbol": "AAPL",
+  "side": "buy",
   "option": { "right": "call", "strike": 230, "expiry": "2026-11-21" },
   "qty": 2,
   "orderType": "limit",
@@ -598,7 +625,23 @@ Recommended alert JSON:
 }
 ```
 
-Normalization maps to Alpaca option symbol; failures create Needs attention with parse error.
+### Crypto
+```json
+{
+  "secret": "{{strategy_secret}}",
+  "assetClass": "crypto",
+  "action": "open",
+  "symbol": "BTC/USD",
+  "side": "buy",
+  "notional": 500,
+  "orderType": "market",
+  "strategyKey": "btc-breakout",
+  "tv_alert_id": "{{alert_id}}"
+}
+```
+
+Crypto may use `qty` **or** `notional` (notional preferred for market buys). Normalize `BTCUSD`, `BTC-USD` → `BTC/USD`.  
+Reject if `assetClass` missing or not enabled on the strategy. Parse failures → Needs attention.
 
 ---
 
@@ -606,13 +649,34 @@ Normalization maps to Alpaca option symbol; failures create Needs attention with
 
 - Official API; paper host vs live host from env
 - Never log secrets
-- Reconcile positions/orders on boot + every 60s
+- Reconcile **stock, option, and crypto** positions/orders on boot + every 60s
 - Poll order status if stream unavailable
 - Surface rejects verbatim in UI
-- Short equity: check shortable/easy-to-borrow when available; otherwise warn in approval
-- Options: single-leg only in v1
-- Live path feature-flagged until paper e2e tests green
+- **Stocks:** long + short; check shortable/ETB when available; otherwise warn in approval
+- **Options:** single-leg only in v1; map to Alpaca/OCC option symbol
+- **Crypto:** Alpaca crypto orders; fractional qty; 24/7; notional buys supported; route with correct crypto order params
+- Submitter branches on `assetClass`
+- Live unlock is **per asset class** after that class’s paper e2e is green (crypto paper fill ≠ live options unlock)
 
+---
+
+## ASSET CLASS MATRIX (IMPLEMENT LITERALLY)
+
+| | Stocks | Options | Crypto |
+|---|---|---|---|
+| Broker | Alpaca equities | Alpaca options | Alpaca crypto |
+| Session default | RTH | RTH | 24/7 |
+| Short / reduce | Short + cover | STO gated; BTC/STC | Sell reduces long; no locate-short unless Alpaca supports — capability badge |
+| Sizing | shares | contracts | qty or notional `$` |
+| Display | `AAPL` | `AAPL 230C 2026-11-21` | `BTC/USD` |
+| Risk extras | PDT info caution | option level, naked block | max crypto notional, pair allowlist |
+| Analytics / Lab | `assetClass=stock` | `assetClass=option` | `assetClass=crypto` — eval/promote **per class** |
+
+**UI chips** on Positions, Blotter, Analytics, Journal: `All · Stocks · Options · Crypto`.  
+**Home pulse:** stock P&L · option P&L · crypto P&L as a definition list (not cards).  
+**Strategies** may be single-class or multi-class; multi-class must still pass per-class caps.  
+**Train:** recommend separate Context Packs per class (vol regimes differ); binding may include multiple packs.  
+**Model Lab:** `episode.assetClass` required; skip-F1 and promotion gates computed per class before that class may use `π_user` in Armed.
 ---
 
 ## AI / DESK PROMPT ASSEMBLY
@@ -623,7 +687,7 @@ Order of prompt sections:
 3. Strategy docs (entry/exit/sizing/no-trades/map)
 4. Lessons (newest first within budget)
 5. Examples / skips (budgeted)
-6. Live account snapshot (positions, BP, open orders, today’s P&L)
+6. Live account snapshot (positions by class, stock/option BP, crypto BP, open orders, today’s P&L by class)
 7. Hard risk caps (machine-readable)
 8. User message or signal
 
@@ -687,18 +751,18 @@ Touch targets ≥44px for Approve / Kill.
 ## TESTING MATRIX (SHIP GATE)
 
 1. Webhook auth fail → 401, no signal row side effects beyond optional security log
-2. Normalize option intent → expected OCC/body
-3. Risk gate each fail path unit-tested
-4. Draft → approve → paper order mocked → fill → journal row
-5. Armed Auto submit path
-6. Kill switch disarms + cancel called
+2. Normalize intents for **stock, option, and crypto** (OCC body; `BTCUSD`→`BTC/USD`; notional crypto buy)
+3. Risk gate each fail path unit-tested (including wrong assetClass on strategy, crypto outside allowlist, RTH block on stock, 24/7 allow on crypto)
+4. Draft → approve → paper order mocked → fill → journal row — **once per asset class**
+5. Armed Auto submit path per class
+6. Kill switch disarms + cancel called (including open crypto orders)
 7. Context budget never drops bible
 8. Arm freezes hash; edit pack doesn’t change frozen hash until re-arm
 9. Feedback Wrong appends lesson; next simulate cites it
-10. Analytics rollup matches sum(fills)
+10. Analytics rollup matches sum(fills) globally and per assetClass
 11. Paper/live combine toggle
-12. Enable live rejects without exact confirm string
-13. Playwright: approval keyboard path; mobile Approvals badge
+12. Enable live rejects without exact confirm string; per-class live unlock respected
+13. Playwright: approval keyboard path; mobile Approvals badge; asset-class filter chips
 
 ---
 
@@ -766,7 +830,8 @@ Do not start Phase 4 until Phase 2 paper approve→fill works. Do not enable liv
 - [ ] Train loop with citations + Correct/Wrong/Almost
 - [ ] Analytics KPIs + equity curve + export
 - [ ] Kill switch + live typed confirm
-- [ ] Seed Demo ORB context pack + fictional samples
+- [ ] Seed Demo ORB (options) + Demo Equity ORB (stocks) + Demo Crypto Breakout + fictional samples
+- [ ] Paper e2e path proven for stock, option, and crypto separately
 - [ ] Test suite from Testing Matrix
 - [ ] No banned visual patterns
 
@@ -775,7 +840,7 @@ Do not start Phase 4 until Phase 2 paper approve→fill works. Do not enable liv
 ## ACCEPTANCE CRITERIA (PRODUCT OWNER)
 
 1. First viewport of `/` reads as TradeDesk even with nav removed; brand is hero-level.
-2. I connect Alpaca paper, create strategy, paste TV webhook, fire alert, see pending approval, approve, see paper fill, see every step in Journal.
+2. I connect Alpaca paper, create strategies for **stock, option, and crypto**, paste TV webhooks, fire alerts for each class, approve, see paper fills, see every step in Journal with correct `assetClass`.
 3. I paste my system into Train, bind it, simulate, see citations, mark Wrong with a note, re-simulate, see the lesson applied.
 4. Context meter visible; over-budget warns; System Bible remains.
 5. Arming freezes context hash; kill switch disarms and can cancel orders.
@@ -975,10 +1040,16 @@ Breakdown by strategy                    Trade table…
 
 ## SEED / DEMO DATA (REQUIRED)
 
-### Context Pack `Demo ORB`
+### Context Pack `Demo ORB` (options)
 - Bible: trade opening range breakout on liquid names; no earnings day; max 2 contracts; RTH only; calls on upside break, puts on downside; stop = range width; target 1.5R.
 - Three example wins, two skips (earnings, wide spread).
-- TV map documenting JSON fields.
+- TV map documenting option JSON fields.
+
+### Context Pack `Demo Equity ORB` (stocks)
+- Same ORB logic with share sizing; short only if ETB; RTH; TV `assetClass=stock` map.
+
+### Context Pack `Demo Crypto Breakout` (crypto)
+- Liquid pairs only (`BTC/USD`, `ETH/USD`); notional sizing; 24/7 with optional quiet hours; no earnings metaphor — use “major network event / extreme spread” skips; TV crypto JSON map.
 
 ### Sample journal (fictional)
 - 12 audit events across signal→fill for AAPL call and a reject on low BP.
@@ -1075,6 +1146,21 @@ Desk must refuse: tax advice, guaranteed profit claims, changing live env withou
 - Side `sell` / `short` when flat → short open; when long → sell to reduce (normalize carefully using position snapshot)
 - Approval must say `SHORT` explicitly in title when opening short
 - Cover = buy to close short; label `COVER`
+
+---
+
+## CRYPTO HANDLING
+
+- `assetClass=crypto` only; never route BTC through equity order path
+- Symbol canonical form `BASE/QUOTE` (USD quote first-class in v1; surface broker errors for others)
+- Prefer `notional` for market buys; support fractional `qty`
+- Session: trade 24/7 unless strategy quiet hours; approval shows `CRYPTO · 24/7` badge
+- Selling only closes/reduces long crypto inventory in v1 unless Alpaca account explicitly supports crypto short — if unsupported, risk gate fails with clear copy
+- Separate max daily loss optional for crypto (crypto overnight gaps ≠ equity RTH)
+- Seed pack `Demo Crypto Breakout` alongside Demo ORB
+- Learn curriculum adds a short lesson: “Crypto sessions & notional sizing”
+- Desk snapshot includes `crypto_bp` and open crypto positions
+- Analytics never blend crypto 24h sessions into “RTH only” slices without labeling
 
 ---
 
@@ -1179,9 +1265,9 @@ A PR is done only if:
 
 ## NON-GOALS RESTATED
 
-**Still out of v1 product surface:** multi-broker, multi-leg spreads, social feed, mobile native, PDF OCR, tax lot engine, dark theme, billing/paywall (unless later asked), SMS Desk, prop-firm rules engine, full historical backtester UI (Lab uses labeled journal + replay bundles first).
+**Still out of v1 product surface:** multi-broker, multi-leg option spreads, crypto-perpetual futures / exotic derivatives, on-chain wallet custody (Alpaca crypto only), social feed, mobile native, PDF OCR, tax lot engine, dark theme, billing/paywall (unless later asked), SMS Desk, prop-firm rules engine, full historical backtester UI (Lab uses labeled journal + replay bundles first).
 
-**Explicitly IN scope as Model Lab (phased):** dataset export, labeling UI, baseline + fine-tune/adapters, eval harness, shadow mode, promotion to Desk — see AI MODEL TRAINING MASTER section. Do **not** skip the data flywheel “because fine-tuning was once out of scope.”
+**Explicitly IN scope:** **stocks + options + crypto** on Alpaca; Model Lab flywheel — see AI MODEL TRAINING MASTER. Do **not** ship equities-only and call crypto “later” without the matrix, payloads, and filters above.
 
 ---
 
@@ -1234,6 +1320,7 @@ model Strategy {
   userId             String
   name               String
   mode               StrategyMode @default(off)
+  assetClasses       String[]     // stock | option | crypto
   allowedSides       Json
   symbols            Json
   sizing             Json
@@ -1478,7 +1565,7 @@ POST /api/train/packs/pack_orb/simulate
 ## FAQ COPY (LANDING — STRAIGHT ANSWERS)
 
 **What is Desk?**  
-Desk is the assistant inside TradeDesk. You ask in plain words. It answers from your journal, Alpaca state, and the Context Packs you trained. It can propose orders. It does not send them without your rules for Draft/Armed and your risk gates.
+Desk is the assistant inside TradeDesk. You ask in plain words. It answers from your journal, Alpaca state, and the Context Packs you trained. It can propose **stock, option, and crypto** orders. It does not send them without your rules for Draft/Armed and your risk gates.
 
 **Who is in control?**  
 You are. Draft mode always waits for Approve. Armed Auto still obeys hard limits and can be killed in one control. Live mode stays off until you type `ENABLE LIVE`.
@@ -1555,17 +1642,19 @@ function riskCheck(intent, strategy, account, todayPnL): RiskResult {
   const checks = [];
   const pass = (id, ok, detail?) => checks.push({ id, pass: ok, detail });
   pass('mode_allows', strategy.mode !== 'off');
+  pass('asset_class', strategy.assetClasses.includes(intent.assetClass));
   pass('side_allowed', strategy.allowedSides.includes(intent.sideKey));
-  pass('symbol_allowed', symbolOk(strategy.symbols, intent.symbol));
-  pass('max_notional', intent.estNotional <= strategy.caps.maxNotional);
-  pass('max_qty', intent.qty <= strategy.caps.maxQty);
-  pass('max_open', account.openCount < strategy.caps.maxOpen);
+  pass('symbol_allowed', symbolOk(strategy.symbols, intent.symbol, intent.assetClass));
+  pass('max_notional', intent.estNotional <= capFor(strategy, intent.assetClass, 'maxNotional'));
+  pass('max_qty', intent.qty <= capFor(strategy, intent.assetClass, 'maxQty'));
+  pass('max_open', openCount(account, intent.assetClass) < capFor(strategy, intent.assetClass, 'maxOpen'));
   pass('daily_loss', todayPnL > -strategy.caps.maxDailyLoss);
-  pass('session', inSession(strategy.schedule, nowNY()));
+  pass('session', inSession(strategy.schedule, intent.assetClass, nowNY()));
   pass('dedup', !recentDuplicate(intent.fingerprint));
-  pass('naked_block', !isNakedShortOption(intent) || strategy.allowNaked);
-  pass('option_level', optionLevelOk(account, intent));
-  pass('buying_power', account.bp >= intent.estDebit);
+  pass('naked_block', intent.assetClass !== 'option' || !isNakedShortOption(intent) || strategy.allowNaked);
+  pass('option_level', intent.assetClass !== 'option' || optionLevelOk(account, intent));
+  pass('buying_power', bpOk(account, intent)); // stock/option BP vs crypto BP
+  pass('crypto_pair', intent.assetClass !== 'crypto' || cryptoPairAllowed(intent.symbol));
   return { pass: checks.every(c => c.pass), checks };
 }
 ```
@@ -1789,10 +1878,11 @@ Each row is a **decision episode**:
   "context_hash": "sha256:…",
   "signal": { "raw": {}, "normalized": {} },
   "account_snapshot": { "bp": 98420, "open_positions": [], "today_pnl": 120 },
+  "assetClass": "option",
   "features": {
     "session": "rth",
     "symbol": "AAPL",
-    "instrument": "option",
+    "assetClass": "option",
     "right": "call",
     "strike": 230,
     "expiry": "2026-11-21"
