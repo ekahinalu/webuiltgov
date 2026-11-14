@@ -36,26 +36,50 @@ Build a full-stack **auto trading desk** product with UX patterned after **getwe
    - Kill switch: global flatten / cancel-all / disarm-all
 4. **Assistant (Studly-analogue)**
    - Chat/command bar: “What’s my P&L today?”, “Propose a 2-contract call on AAPL weekly ATM”, “Disarm all strategies”, “Show last 20 fills”
-   - Answers from **this user’s records + Alpaca live state**, not generic advice
-   - Money/risk actions always surface an **approval card** (symbol, side, qty, estimated cost, max loss if known, strategy source)
-5. **Trade journal / audit log (mandatory)**
-   Log every: signal received, proposal created, approval/rejection, order submitted, broker ack, fill, partial fill, cancel, reject, error, strategy arm/disarm, connection change, kill-switch use.
-   Fields: `id, ts, actor (user|system|webhook), strategy_id?, signal_id?, intent, raw_payload, normalized_order, broker_order_id?, status, fills[], pnl_delta?, notes, ip/source`
+   - Answers from **this user’s records + Alpaca live state + active Training Context**, not generic advice
+   - Money/risk actions always surface an **approval card** (symbol, side, qty, estimated cost, max loss if known, strategy source, **which context docs were used**)
+5. **Training Context Window (mandatory — how the user teaches the trading AI)**
+   - Dedicated **Train** area in the app where the user builds the model’s working memory for *how to trade their system*
+   - User can create multiple **Context Packs** (e.g. “ORB Calls”, “VWAP Shorts”, “Earnings No-Trade”)
+   - Each pack has editable documents: system rules, entry/exit, sizing, hard no-trades, examples (good trades + skips), TradingView alert field map
+   - Inputs supported in v1:
+     - Large paste / markdown editor (primary)
+     - File upload: `.md`, `.txt`, `.csv` (trade examples)
+     - “Add from journal” — promote a logged trade into an example with user notes (win/loss + why)
+   - **Active context window** UI:
+     - Shows which packs/docs are currently injected into the AI
+     - Live **token / character budget** meter (configurable soft cap, default ~32k–100k tokens equivalent; truncate with clear warning, never silently drop the system bible)
+     - Pin order: System Bible (always first) → Strategy pack → Recent examples → Live account snapshot (generated, not user-edited)
+   - Per-strategy binding: each Strategy selects which Context Pack(s) are active when proposing or auto-trading
+   - **Versioning:** every save creates a version; user can diff / restore; arming a strategy freezes the pack version hash onto that strategy until re-armed
+   - **Training loop (paper):**
+     1. User pastes/edits system rules in Train
+     2. Replay or inject a sample TradingView signal (or use “Simulate signal”)
+     3. AI produces a proposal **citing the exact rules/examples it used**
+     4. User marks Correct / Wrong / Almost and optionally writes a correction note
+     5. Correction is appended to the pack as a labeled lesson; next proposals must respect it
+   - Context is **never** used to bypass risk engine hard gates
+   - Export/import Context Pack as a single markdown/JSON bundle for backup
+6. **Trade journal / audit log (mandatory)**
+   Log every: signal received, proposal created, approval/rejection, order submitted, broker ack, fill, partial fill, cancel, reject, error, strategy arm/disarm, connection change, kill-switch use, **context pack save / activate / train-feedback**.
+   Fields: `id, ts, actor (user|system|webhook), strategy_id?, signal_id?, intent, raw_payload, normalized_order, broker_order_id?, status, fills[], pnl_delta?, notes, ip/source, context_pack_ids[], context_version_hash?`
    UI: filterable ledger + export CSV
-6. **Dashboard surfaces (not a cluttered trading terminal)**
+7. **Dashboard surfaces (not a cluttered trading terminal)**
    - Needs attention (pending approvals, rejects, limit breaches)
    - Open risk (positions + options Greeks-lite if available; at least underlying, strike, expiry, qty, avg, mark, uPnL)
    - Today’s P&L + fill blotter
    - Strategies list with mode badges
    - Activity feed (receipts)
+   - **Train** entry point with context budget meter + last training feedback
 
 ### Architecture
 - **Frontend:** Next.js (App Router) + TypeScript + Tailwind. Expressive typography (not Inter/Roboto/system). Atmospheric background (subtle gradient/pattern), brand-first landing. Product app is calm and sparse — **no cards in the hero**; cards only for interactive approval/actions.
 - **Backend:** Next.js route handlers or separate Nest/Fastify service — pick one and keep it simple.
-- **DB:** Postgres (Prisma or Drizzle) for users, strategies, signals, orders, fills, audit_events, api_credentials (encrypted at rest).
-- **Queue/worker:** process webhooks → normalize → risk check → propose or execute; never block webhook ACK longer than needed (store raw, respond 200, process async).
-- **Secrets:** Alpaca keys and webhook secrets in env / secret manager; never log raw secrets.
-- **Auth:** email magic link or Clerk/Auth.js; session required for approve/execute.
+- **DB:** Postgres (Prisma or Drizzle) for users, strategies, signals, orders, fills, audit_events, api_credentials (encrypted at rest), **context_packs, context_documents, context_versions, training_feedback**.
+- **AI layer:** when proposing or answering trade questions, assemble prompt = system policy + active Context Pack version(s) (within budget) + account/positions snapshot + signal + hard risk limits. Persist the assembled context hash on every proposal.
+- **Queue/worker:** process webhooks → normalize → risk check → load strategy context → propose or execute; never block webhook ACK longer than needed (store raw, respond 200, process async).
+- **Secrets:** Alpaca keys, webhook secrets, and LLM API keys in env / secret manager; never log raw secrets or full prompt dumps containing secrets.
+- **Auth:** email magic link or Clerk/Auth.js; session required for approve/execute / train edits.
 
 ### TradingView → order flow
 1. User creates alert on TradingView pointing to `POST /api/webhooks/tradingview/:strategyId`
@@ -97,6 +121,8 @@ Build a full-stack **auto trading desk** product with UX patterned after **getwe
 - Tax lots / Form 8949 perfection
 - Complex multi-leg option spreads (single-leg only in v1)
 - Investment advice / “AI picks”
+- Fine-tuning / weight training of foundation models (v1 is **context + feedback packs only**, not model weight training)
+- PDF/OCR ingestion (markdown/txt/csv only in v1)
 
 ### Compliance / copy
 - Product is execution + journaling software, **not** financial advice
@@ -107,16 +133,20 @@ Build a full-stack **auto trading desk** product with UX patterned after **getwe
 1. Repo scaffold with README (setup Alpaca paper keys, TradingView webhook URL, migrate DB, run)
 2. Working paper-trading path: webhook → proposal → approve → Alpaca paper order → fill logged
 3. Strategy arm/disarm + kill switch
-4. Full audit/trade log UI + CSV export
-5. Seed fictional sample receipts for empty states
-6. Minimal test suite: risk gates, webhook auth, order normalization, idempotency
-7. `.env.example` with all required vars
+4. **Train UI:** Context Packs, document editor, budget meter, strategy binding, version history, simulate-signal + Correct/Wrong/Almost feedback loop
+5. Full audit/trade log UI + CSV export (including context/training events)
+6. Seed fictional sample receipts + a sample Context Pack (“Demo ORB”) for empty states
+7. Minimal test suite: risk gates, webhook auth, order normalization, idempotency, context budget assembly, frozen version hash on arm
+8. `.env.example` with all required vars (including LLM provider key)
 
 ### Acceptance criteria
 - I can create a strategy, paste a TradingView webhook URL, fire a test alert, see a pending approval, approve it, see a paper fill on Alpaca, and see every step in the trade log.
 - Kill switch disarms strategies and can cancel open orders.
 - Live mode cannot be enabled accidentally; requires explicit confirm.
 - No trade exists without a ledger row.
+- I can paste my trading system into **Train**, bind it to a strategy, simulate a signal, see a proposal that cites my rules, mark it Wrong with a correction, and the next simulation respects that correction.
+- Context budget meter is visible; over-budget packs warn and do not silently drop the System Bible.
+- Arming a strategy freezes the active context version hash on that strategy.
 
 ### Credentials (provided by human later)
 - TradingView (alert webhook will be configured by user)
