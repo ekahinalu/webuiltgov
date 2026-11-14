@@ -1182,6 +1182,541 @@ If the human pastes a trading system, convert it into `Demo`→user pack documen
 
 ---
 
+
+
+---
+
+## PRISMA SCHEMA DRAFT (IMPLEMENT OR EQUIVALENT DRIZZLE)
+
+```prisma
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+
+enum Env { paper live }
+enum StrategyMode { off draft armed }
+enum ApprovalStatus { pending approved rejected expired superseded }
+enum FeedbackLabel { correct almost wrong }
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  timezone  String   @default("America/Denver")
+  createdAt DateTime @default(now())
+  strategies Strategy[]
+  packs      ContextPack[]
+  audits     AuditEvent[]
+}
+
+model ApiCredential {
+  id               String   @id @default(cuid())
+  userId           String
+  provider         String
+  keyId            String?
+  secretCiphertext String
+  last4            String
+  env              Env?
+  createdAt        DateTime @default(now())
+  @@index([userId, provider])
+}
+
+model Strategy {
+  id                 String       @id @default(cuid())
+  userId             String
+  name               String
+  mode               StrategyMode @default(off)
+  allowedSides       Json
+  symbols            Json
+  sizing             Json
+  caps               Json
+  schedule           Json
+  webhookSecretHash  String
+  contextPackIds     String[]
+  frozenContextHash  String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  user               User @relation(fields: [userId], references: [id])
+  signals            Signal[]
+  @@unique([userId, name])
+}
+
+model Signal {
+  id          String   @id @default(cuid())
+  strategyId  String
+  source      String
+  rawPayload  Json
+  fingerprint String
+  status      String
+  receivedAt  DateTime @default(now())
+  strategy    Strategy @relation(fields: [strategyId], references: [id])
+  intents     OrderIntent[]
+  @@index([strategyId, fingerprint, receivedAt])
+}
+
+model OrderIntent {
+  id           String   @id @default(cuid())
+  signalId     String?
+  strategyId   String
+  normalized   Json
+  riskResult   Json
+  contextHash  String
+  status       String
+  createdAt    DateTime @default(now())
+  signal       Signal?  @relation(fields: [signalId], references: [id])
+  approval     Approval?
+  order        Order?
+}
+
+model Approval {
+  id           String         @id @default(cuid())
+  orderIntentId String        @unique
+  status       ApprovalStatus @default(pending)
+  decidedBy    String?
+  decidedAt    DateTime?
+  expiresAt    DateTime
+  orderIntent  OrderIntent @relation(fields: [orderIntentId], references: [id])
+}
+
+model Order {
+  id             String   @id @default(cuid())
+  orderIntentId  String   @unique
+  clientOrderId  String   @unique
+  brokerOrderId  String?
+  status         String
+  submittedAt    DateTime @default(now())
+  orderIntent    OrderIntent @relation(fields: [orderIntentId], references: [id])
+  fills          Fill[]
+}
+
+model Fill {
+  id      String   @id @default(cuid())
+  orderId String
+  qty     Decimal  @db.Decimal(18, 6)
+  price   Decimal  @db.Decimal(18, 6)
+  fees    Decimal  @default(0) @db.Decimal(18, 6)
+  ts      DateTime
+  raw     Json?
+  order   Order @relation(fields: [orderId], references: [id])
+  @@index([orderId, ts])
+}
+
+model ContextPack {
+  id            String   @id @default(cuid())
+  userId        String
+  name          String
+  softTokenCap  Int      @default(64000)
+  createdAt     DateTime @default(now())
+  user          User @relation(fields: [userId], references: [id])
+  documents     ContextDocument[]
+  versions      ContextVersion[]
+  feedback      TrainingFeedback[]
+}
+
+model ContextDocument {
+  id        String   @id @default(cuid())
+  packId    String
+  path      String
+  sortOrder Int
+  bodyMd    String
+  updatedAt DateTime @updatedAt
+  pack      ContextPack @relation(fields: [packId], references: [id])
+  @@unique([packId, path])
+}
+
+model ContextVersion {
+  id        String   @id @default(cuid())
+  packId    String
+  hash      String
+  bundle    Json
+  note      String?
+  createdAt DateTime @default(now())
+  pack      ContextPack @relation(fields: [packId], references: [id])
+  @@index([packId, createdAt])
+}
+
+model TrainingFeedback {
+  id          String        @id @default(cuid())
+  packId      String
+  versionHash String
+  signalSim   Json
+  proposal    Json
+  label       FeedbackLabel
+  note        String?
+  createdAt   DateTime @default(now())
+  pack        ContextPack @relation(fields: [packId], references: [id])
+}
+
+model AuditEvent {
+  id                 String   @id @default(cuid())
+  userId             String
+  ts                 DateTime @default(now())
+  actor              String
+  type               String
+  entityRef          String?
+  payload            Json
+  strategyId         String?
+  contextPackIds     String[]
+  contextVersionHash String?
+  user               User @relation(fields: [userId], references: [id])
+  @@index([userId, ts])
+  @@index([type, ts])
+}
+
+model AnalyticsDailyRollup {
+  userId     String
+  env        Env
+  day        DateTime @db.Date
+  strategyId String   @default("")
+  metrics    Json
+  @@id([userId, env, day, strategyId])
+}
+```
+
+---
+
+## EXAMPLE API REQUEST / RESPONSE
+
+### Approve
+```http
+POST /api/approvals/appr_01HXYZ/approve
+Cookie: session=…
+
+→ 200
+{
+  "approvalId": "appr_01HXYZ",
+  "status": "approved",
+  "order": {
+    "clientOrderId": "td_orb_9f3c_0",
+    "brokerOrderId": "alpaca_…",
+    "status": "accepted"
+  },
+  "receiptId": "evt_…"
+}
+```
+
+### Analytics
+```http
+GET /api/analytics?range=30d&env=paper&strategyId=strat_orb
+→ 200
+{
+  "range": {"start": "2026-10-15", "end": "2026-11-14", "tz": "America/Denver"},
+  "env": "paper",
+  "kpis": {
+    "netRealized": 4820.15,
+    "unrealized": -120.5,
+    "fees": 42.1,
+    "winRate": 0.57,
+    "profitFactor": 1.82,
+    "expectancy": 62.4,
+    "maxDrawdown": -0.061,
+    "currentDrawdown": -0.012,
+    "trades": 77,
+    "avgHoldMinutes": 48,
+    "avgR": 0.71,
+    "medianApprovalLatencySec": 83
+  },
+  "equityCurve": [{"t": "2026-10-15", "v": 0}, {"t": "2026-11-14", "v": 4820.15}],
+  "breakdowns": {"strategy": [{"id": "strat_orb", "trades": 77, "net": 4820.15, "winRate": 0.57}]}
+}
+```
+
+### Simulate
+```http
+POST /api/train/packs/pack_orb/simulate
+{
+  "payload": {"action":"open","symbol":"AAPL","instrument":"option","option":{"right":"call","strike":230,"expiry":"2026-11-21"},"qty":2,"orderType":"limit","limitPrice":1.85}
+}
+→ 200
+{
+  "proposal": {
+    "action": "submit_order",
+    "summary": "BUY CALL AAPL 230C 2026-11-21 × 2 LIMIT 1.85",
+    "citations": [
+      {"path": "00-system-bible.md", "excerpt": "RTH only; max 2 contracts"},
+      {"path": "01-setup-entry.md", "excerpt": "ORB long → calls"}
+    ],
+    "risk": {"pass": true, "checks": [{"id":"max_contracts","pass":true}]}
+  },
+  "contextHash": "sha256:…"
+}
+```
+
+---
+
+## TOKEN ESTIMATION HEURISTIC
+
+- Estimate tokens ≈ `ceil(chars / 4)` for English markdown
+- Show both chars and estimated tokens in the meter
+- Cap enforcement uses estimated tokens; log actual LLM usage when provider returns it and calibrate later
+- Hard ceiling = soft cap; never send over ceiling
+
+---
+
+## ACCESSIBILITY MATRIX
+
+| Surface | Requirement |
+|---|---|
+| Approval Approve/Not now | Buttons focusable; `aria-keyshortcuts` documented; status in `aria-live` |
+| Kill switch | Confirm dialog `role="dialog"` modal, focus trap, Esc closes without action |
+| Charts | Provide data table alternative toggle `View as table` |
+| Color P&L | Prefix `+`/`−` and `aria-label` |
+| Train editor | Labelled textarea; Save version not icon-only |
+| Env badge | Text not color-only (`PAPER`/`LIVE · REAL MONEY`) |
+| Tabs mobile | `role="tablist"`; selected tab `aria-selected` |
+
+---
+
+## FAQ COPY (LANDING — STRAIGHT ANSWERS)
+
+**What is Desk?**  
+Desk is the assistant inside TradeDesk. You ask in plain words. It answers from your journal, Alpaca state, and the Context Packs you trained. It can propose orders. It does not send them without your rules for Draft/Armed and your risk gates.
+
+**Who is in control?**  
+You are. Draft mode always waits for Approve. Armed Auto still obeys hard limits and can be killed in one control. Live mode stays off until you type `ENABLE LIVE`.
+
+**Is this financial advice?**  
+No. TradeDesk is execution, journaling, training context, and analytics software. You are responsible for your trading decisions.
+
+**Paper vs live?**  
+Paper is default. Paper and live analytics stay separate unless you choose Combine. Strategies disarm when you enable live so nothing silently carries over.
+
+**How do I teach it my system?**  
+Open Train. Paste rules into the Context Pack templates. Simulate signals. Mark Correct, Almost, or Wrong. Lessons stick to the pack and are cited on later proposals.
+
+**What gets logged?**  
+Signals, proposals, approvals, rejects, broker acks, fills, arm/disarm, context saves, training feedback, kill-switch uses. If it moved risk or tried to, it is on the record.
+
+---
+
+## VISUAL MOTION SPEC (EXPLICIT)
+
+1. **Approval enter:** `opacity 0→1`, `translateY 8→0`, 180ms `cubic-bezier(0.2, 0.8, 0.2, 1)`
+2. **Receipt stamp:** `scale 0.98→1`, opacity 160ms
+3. **Equity path:** SVG `stroke-dashoffset` 600ms once per mount
+4. **Armed dot pulse:** opacity 1→0.45→1 over 1200ms; stop under reduced motion
+5. **No** parallax on app screens; landing atmosphere drift ≤2% only
+
+---
+
+## SAMPLE SYSTEM BIBLE STARTER (PRELOAD IN DEMO PACK)
+
+```markdown
+# System Bible — Demo ORB
+
+## Identity
+Intraday opening-range breakout on liquid US equities. Options for leverage; no naked shorts.
+
+## Session
+Regular Trading Hours only (09:30–16:00 America/New_York). No premarket entries.
+
+## Setup
+- Opening range = first 15 minutes high/low
+- Long breakout: price holds above range high with rising volume
+- Short breakdown: price holds below range low with rising volume
+
+## Entries
+- Long → BUY CALL near ATM, same-week or next-week expiry
+- Short → BUY PUT near ATM (v1: prefer long puts over short stock unless pack says otherwise)
+- Max 2 contracts per trade
+- Limit orders preferred; avoid market during first 2 minutes after break
+
+## Exits
+- Stop: invalidation back inside opening range
+- Target: 1.5R
+- Time stop: flat by 15:45 ET if not at target
+
+## Hard no-trades
+- Earnings day for that symbol
+- Spread wider than 10% of option mid
+- Already 2 open ORB positions
+- After max daily loss hit
+
+## Sizing
+Fixed 2 contracts until account rules change in strategy caps.
+```
+
+Builders must ship this as seed content.
+
+---
+
+## RISK ENGINE PSEUDOCODE
+
+```ts
+function riskCheck(intent, strategy, account, todayPnL): RiskResult {
+  const checks = [];
+  const pass = (id, ok, detail?) => checks.push({ id, pass: ok, detail });
+  pass('mode_allows', strategy.mode !== 'off');
+  pass('side_allowed', strategy.allowedSides.includes(intent.sideKey));
+  pass('symbol_allowed', symbolOk(strategy.symbols, intent.symbol));
+  pass('max_notional', intent.estNotional <= strategy.caps.maxNotional);
+  pass('max_qty', intent.qty <= strategy.caps.maxQty);
+  pass('max_open', account.openCount < strategy.caps.maxOpen);
+  pass('daily_loss', todayPnL > -strategy.caps.maxDailyLoss);
+  pass('session', inSession(strategy.schedule, nowNY()));
+  pass('dedup', !recentDuplicate(intent.fingerprint));
+  pass('naked_block', !isNakedShortOption(intent) || strategy.allowNaked);
+  pass('option_level', optionLevelOk(account, intent));
+  pass('buying_power', account.bp >= intent.estDebit);
+  return { pass: checks.every(c => c.pass), checks };
+}
+```
+
+Implement real TypeScript matching this shape; do not leave as comments only.
+
+---
+
+## ANALYTICS METRIC DEFINITIONS
+
+- **Win:** closed round-trip with net P&L > 0 after fees
+- **Loss:** closed round-trip with net P&L ≤ 0 after fees
+- **Win rate:** wins / closed trades
+- **Profit factor:** sum(wins) / abs(sum(losses)); if no losses, `null` display `—`
+- **Expectancy:** mean net P&L per closed trade
+- **Equity curve:** cumulative sum of closed-trade net P&L by day end
+- **Drawdown:** (peak − trough) / peak on equity curve in range; also show `$` absolute
+- **R-multiple:** net / initial risk if stop distance known at entry; else exclude from avg R
+- **Approval latency:** approve_ts − signal_received_ts for Draft trades only
+
+---
+
+## CONTENT DESIGN — APPROVAL TITLE VERBS
+
+Use exact patterns:
+- `Submit this paper order?`
+- `Submit this LIVE order?`
+- `Arm strategy {name}?`
+- `Disarm strategy {name}?`
+- `Cancel open orders?`
+- `Flatten all positions?`
+- `Enable LIVE trading?`
+- `Rotate TradingView secret?`
+
+Never `Are you sure?` alone without the verb object.
+
+---
+
+## STATE EMPTY / LOADING / ERROR PATTERNS
+
+- **Loading:** skeleton lines matching final layout density; no spinners in hero
+- **Error:** plain sentence + `Try again` + journal link if audit id exists
+- **Empty:** microcopy library + one CTA
+- **Stale data:** `Updated 12s ago` on Positions; Reconcile action
+
+---
+
+## FILE-LEVEL OWNERSHIP (WHO TOUCHES WHAT)
+
+| Concern | Primary paths |
+|---|---|
+| Tokens / typography | `styles/tokens.css`, `app/layout.tsx` |
+| Landing | `app/(marketing)/page.tsx` |
+| Approval UX | `components/approval-card.tsx` |
+| Risk | `lib/risk/engine.ts` |
+| Alpaca | `lib/alpaca/*` |
+| TV normalize | `lib/tradingview/normalize.ts` |
+| Context assemble | `lib/ai/assemble-context.ts` |
+| Train UI | `app/(app)/app/train/*` |
+| Analytics | `lib/analytics/*`, `app/(app)/app/analytics/page.tsx` |
+| Webhook | `app/api/webhooks/tradingview/[strategyId]/route.ts` |
+
+Keep files focused; split when >400 lines.
+
+---
+
+## COMMIT MESSAGE CONVENTION
+
+- `feat(train): …`
+- `feat(approvals): …`
+- `feat(analytics): …`
+- `feat(alpaca): …`
+- `fix(risk): …`
+- `ui(marketing): …`
+- `test: …`
+- `docs: …`
+
+Ship vertical slices; avoid mega-commits mixing landing CSS with risk engine.
+
+---
+
+## CONTRACT SIGN-OFF CRITERIA (HUMAN)
+
+The human accepts the build when:
+1. They can teach a system in Train and see it cited
+2. They can run paper Flow A without reading code
+3. Analytics matches their journal gut-check
+4. The product feels like WeBuilt’s calm control — not a terminal skin
+5. Live remains scary-but-clear, never sneaky
+
+---
+
+
+---
+
+## UI KIT — BUTTON & FORM RECIPES
+
+### Primary button
+- Bg `--accent`, text white, h-44px, px-20, radius 6, font Source Sans 3 600 16
+- Hover: darken 6%; Active: darken 10%; Focus: brand outline
+- Used for: Approve order, Start paper desk, Save version, Run simulation
+
+### Secondary button
+- Bg transparent, border `--line`, text `--ink`
+- Used for: Not now, Export, Reconcile
+
+### Danger button
+- Text `--danger`, border `--danger-soft` or quiet text button
+- Used for Kill, Reject, Flatten (after confirm)
+
+### Inputs
+- H 44px, border `--line`, focus border `--brand`
+- Labels above fields, 14px muted
+- Help text 12px under field
+
+### Tables
+- Header 12px uppercase tracking wide muted
+- Row h ~44–52; hover `--atmosphere-1`
+- Numeric columns right-aligned mono
+
+---
+
+## END-TO-END SEQUENCE DIAGRAM (BUILDERS: MATCH THIS)
+
+```text
+TV Alert → Webhook Route → verify secret → insert Signal
+        → queue → normalize → riskCheck
+        → if draft: insert Approval(pending) → push Attention
+        → user Approve → submit Alpaca (client_order_id)
+        → poll/stream → insert Fill(s) → audit → recompute rollups
+        → UI blotter/analytics refresh
+```
+
+Armed Auto skips Approval insert when risk pass; still writes audit `proposal_auto_accepted`.
+
+---
+
+## LOCAL DEV SCRIPT EXPECTATIONS
+
+package.json scripts:
+- `dev` — next dev
+- `build` / `start`
+- `db:migrate` / `db:seed`
+- `test` / `test:e2e`
+- `lint` / `typecheck`
+
+Seed command loads Demo ORB pack + sample analytics + sample approvals marked Sample.
+
+---
+
+## FINAL QUALITY BAR (CONTRACTOR LENS)
+
+If a senior designer reviews the landing and can swap the logo for another fintech and it still “fits,” branding failed — strengthen wordmark and atmosphere until TradeDesk-specific.
+
+If a senior engineer reviews risk/train and finds context able to bypass max daily loss, fail the PR.
+
+If analytics disagree with summed fills by more than one cent after rounding rules, fail the PR.
+
+Rounding: banker’s rounding to cent for display; store full precision decimals.
+
 ## CREDENTIALS
 
 Human provides later: Alpaca paper (then live) keys, TradingView alert setup, LLM API key.  
