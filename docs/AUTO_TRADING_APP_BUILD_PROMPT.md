@@ -1,6 +1,6 @@
 # Master Build Prompt — TradeDesk (WeBuilt-grade Auto Trading Desk)
 
-> **How to use:** Copy everything from `## ROLE` to the end into a coding agent as the sole product brief. This is a contract-engineer + principal UI/UX designer handoff. Build exactly to this. Do not invent a different product. Do not skip Train, Analytics, or the approval/receipt model.
+> **How to use:** Copy everything from `## ROLE` to the end into a coding agent as the sole product brief. This is a contract-engineer + principal UI/UX designer + **AI model-training master** handoff. Build exactly to this. Do not invent a different product. Do not skip Train, Analytics, Model Lab, or the approval/receipt model.
 
 ---
 
@@ -10,14 +10,15 @@ You are simultaneously:
 
 1. **Staff contract engineer** shipping a production paper-first trading desk (Next.js, Postgres, Alpaca, TradingView webhooks, LLM context assembly).
 2. **Principal UI/UX designer** responsible for a WeBuilt/Studly-class experience: calm, approval-first, receipt-driven, brand-forward marketing, sparse operational app chrome.
+3. **AI model-training master** who knows how trading models are actually built: data flywheels, labels, baselines, eval harnesses, supervised fine-tunes, preference learning, distillation, and promotion gates — so the user can **learn trading** and eventually run **their own trading model**, not rent a black-box “AI picks” feed.
 
-You will design and implement end-to-end. Prefer opinionated defaults over configuration sprawl. Every screen has one job. Every money action waits for a yes unless Armed Auto + risk gates pass.
+You will design and implement end-to-end. Prefer opinionated defaults over configuration sprawl. Every screen has one job. Every money action waits for a yes unless Armed Auto + risk gates pass. Every model candidate is scored against the user’s journal and held-out labels before it can propose live risk.
 
 ---
 
 ## PRODUCT ONE-LINER
 
-**TradeDesk** — Your trading desk, handled. Signals arrive. The desk proposes. You approve. Alpaca executes. Everything is logged, trainable, and measurable.
+**TradeDesk** — Your trading desk, handled. Signals arrive. The desk proposes. You approve. Alpaca executes. Everything is logged, trainable, and measurable — until you graduate to **your own trading model** in Model Lab.
 
 Analog: getwebuilt.com’s Studly, but for **options calls/puts, equity longs, and shorts** — not contractors.
 
@@ -28,7 +29,7 @@ Analog: getwebuilt.com’s Studly, but for **options calls/puts, equity longs, a
 1. **Approval-first capital.** Nothing that opens, adds, or closes risk runs without explicit Approve — unless the strategy is `Armed Auto` and every hard risk gate passes.
 2. **Receipts over dashboards.** Every meaningful action yields an on-the-record receipt (who / what / when / why / source / result). Undo only when truly reversible (disarm, cancel unfilled, restore context version). Never fake-undo a broker fill.
 3. **Paper by default.** Environment badge is always visible. Live requires typed confirm phrase: `ENABLE LIVE`.
-4. **Teachable AI.** The model trades *your* system via Context Packs + Correct/Wrong/Almost feedback — not vibes, not generic “AI picks.”
+4. **Teachable AI → owned policy.** Start with Context Packs + Correct/Wrong/Almost; capture episodes; train baseline then LoRA students in Model Lab; promote only through eval gates — not vibes, not generic “AI picks.”
 5. **One composition per viewport.** Landing hero is brand + one headline + one sentence + one CTA group + one full-bleed atmosphere. App home is “Needs attention,” not a widget collage.
 6. **Cards only for interaction.** Approval cards, kill-switch confirm, connection forms. Do not wrap static stats in card chrome.
 7. **Analytics from truth.** KPIs come only from journal fills + Alpaca reconciliation. Paper and live never mix unless the user toggles Combine.
@@ -144,6 +145,9 @@ Use Lucide or Phosphor, 1.5–1.75 stroke, monochrome. No multicolor icon soups.
 | `/app/strategies/[id]` | Strategy detail, webhook URL, mode, context binding |
 | `/app/train` | Context Packs library |
 | `/app/train/[packId]` | Editor + budget meter + simulate |
+| `/app/lab` | Model Lab — datasets, training runs, evals, promote |
+| `/app/lab/[runId]` | Run detail: metrics, confusion, promotion checklist |
+| `/app/learn` | Trader learning track (curriculum alongside model training) |
 | `/app/analytics` | Full analytics |
 | `/app/journal` | Audit ledger |
 | `/app/connections` | Alpaca + webhook secrets |
@@ -746,7 +750,10 @@ Rollups, charts, breakdowns, export, Desk analytics answers
 ### Phase 6 — Hardening
 Tests green, live enable gate, README, seed Demo ORB pack + sample analytics
 
-Do not start Phase 4 until Phase 2 paper approve→fill works. Do not enable live until Phase 6 tests pass.
+### Phases 7–10 — Model Lab (see AI MODEL TRAINING MASTER)
+Dataset flywheel → baseline student → LoRA SFT → DPO + promote/rollback + Learn curriculum
+
+Do not start Phase 4 until Phase 2 paper approve→fill works. Do not enable live until Phase 6 tests pass. Do not start Phase 9 until Phase 8 beats teacher skip-F1 on held-out labels.
 
 ---
 
@@ -1170,9 +1177,11 @@ A PR is done only if:
 
 ---
 
-## NON-GOALS RESTATED (DO NOT BUILD IN V1)
+## NON-GOALS RESTATED
 
-Multi-broker, multi-leg spreads, social feed, mobile native, PDF OCR, weight fine-tuning, tax lot engine, dark theme, billing/paywall (unless later asked), SMS Desk, prop-firm rules engine, backtester full platform (simulate signal only).
+**Still out of v1 product surface:** multi-broker, multi-leg spreads, social feed, mobile native, PDF OCR, tax lot engine, dark theme, billing/paywall (unless later asked), SMS Desk, prop-firm rules engine, full historical backtester UI (Lab uses labeled journal + replay bundles first).
+
+**Explicitly IN scope as Model Lab (phased):** dataset export, labeling UI, baseline + fine-tune/adapters, eval harness, shadow mode, promotion to Desk — see AI MODEL TRAINING MASTER section. Do **not** skip the data flywheel “because fine-tuning was once out of scope.”
 
 ---
 
@@ -1717,6 +1726,217 @@ If analytics disagree with summed fills by more than one cent after rounding rul
 
 Rounding: banker’s rounding to cent for display; store full precision decimals.
 
+
+---
+
+## AI MODEL TRAINING MASTER — OWN YOUR TRADING MODEL
+
+### Mission
+The product is not “an LLM that vibes trades.” It is a **school + factory**:
+1. The human **learns** a trading system (rules, risk, review).
+2. The desk **captures** every decision as labeled data.
+3. The lab **trains** models that imitate and then improve *that* system.
+4. Only models that beat baselines in **paper shadow** may propose under Draft/Armed.
+
+Truth over magic. No “guaranteed alpha.” Ownership of the model weights/adapters and datasets stays with the user.
+
+### What “our own trading model” means
+A user-owned artifact stack:
+- **Dataset** `D` — signals, features, human labels, outcomes
+- **Policy model** `π` — maps (context, signal, account snapshot) → `{no_trade | propose_order}` + structured order fields + rationale citations
+- **Risk layer** `R` — deterministic gates (never learned away)
+- **Eval suite** `E` — offline metrics + paper shadow PnL + agreement with human labels
+- **Promotion record** — which hash of `π` is allowed in Desk
+
+Base LLM (GPT/Claude/Llama/etc.) is a **bootstrapping teacher**. The destination is a **specialized trader policy** fine-tuned / adapted on the user’s data (LoRA/QLoRA or full FT when justified), optionally distilled to a smaller local model later.
+
+### Learning ladder (human + model together)
+
+| Stage | Human learns | Model learns | Desk mode |
+|---|---|---|---|
+| L0 Rules | Write System Bible in Train | Context injection only (RAG/prompt) | Draft proposals |
+| L1 Imitation | Correct/Wrong/Almost on sims + live Draft | Supervised labels: action, side, size bin, skip reason | Draft |
+| L2 Preference | Rank two proposals / edit orders | DPO/ORPO-style preference pairs | Draft |
+| L3 Outcome | Journal reviews tagged good process vs lucky | Outcome-aware review models; no PnL leakage into features | Paper Armed shadow |
+| L4 Ownership | Read eval report; approve promote | Deploy adapter/weights as `π_user` | Draft → Armed paper |
+| L5 Live (optional) | Accept real-money risk | Same `π_user` behind gates | Live only after ENABLE LIVE + promote |
+
+Never jump to L5 without L3–L4 paper evidence.
+
+### Model Lab UI (`/app/lab`) — one job: build & prove models
+Sections:
+1. **Datasets** — build from journal + training_feedback + context versions
+2. **Runs** — start training job, status, loss curve (one chart, one job)
+3. **Evals** — held-out accuracy, skip precision, calibration, paper shadow summary
+4. **Registry** — model cards: name, base model, data hash, metrics, stage
+5. **Promote** — checklist → sets Desk `active_policy_id` (still behind risk gates)
+
+Same design system; no GPU-bro aesthetic. Receipts for every train start, finish, promote, rollback.
+
+### Nav
+Add **Lab** and **Learn** to the app rail after Train. Badge Lab when a run completes.
+
+### Dataset schema (export + store)
+
+Each row is a **decision episode**:
+
+```json
+{
+  "episode_id": "ep_…",
+  "ts": "2026-11-14T18:04:02Z",
+  "env": "paper",
+  "strategy_id": "strat_orb",
+  "context_hash": "sha256:…",
+  "signal": { "raw": {}, "normalized": {} },
+  "account_snapshot": { "bp": 98420, "open_positions": [], "today_pnl": 120 },
+  "features": {
+    "session": "rth",
+    "symbol": "AAPL",
+    "instrument": "option",
+    "right": "call",
+    "strike": 230,
+    "expiry": "2026-11-21"
+  },
+  "label": {
+    "action": "submit_order",
+    "order": { "side": "buy", "qty": 2, "orderType": "limit", "limitPrice": 1.85 },
+    "skip_reason": null,
+    "source": "human_approval",
+    "feedback": "correct"
+  },
+  "outcome": {
+    "realized_pnl": 140.0,
+    "hold_minutes": 42,
+    "hit_stop": false,
+    "hit_target": true,
+    "process_grade": "unlabeled"
+  }
+}
+```
+
+Rules:
+- Split **by time** (and optionally by symbol) — no random shuffle leakage
+- Train / val / test = 70 / 15 / 15 default; show counts in UI
+- Teacher-LLM labels marked `source=teacher_llm` and down-weighted until human confirms
+- Rejects and `no_trade` are first-class (critical for options discipline)
+
+### Feature policy
+v1 Lab features = signal + snapshot + context hash + session clocks (+ optional TV fields in webhook).  
+**Leakage bans:** no future bars, no final PnL inside features, no post-split bible edits bleeding into training labels without versioning.
+
+### Teacher → Student recipe (default stack)
+
+**Teacher (L0–L1):** frontier LLM + Context Pack assembly. Produces proposals + citations. Human grades.
+
+**Student policy targets (Lab allows swap; build in this order):**
+1. **Baseline ensemble (ship first):** `no_trade vs trade` classifier + heads for side / qty bin / limit offset — often wins on small data
+2. **LoRA/QLoRA adapter on open instruct model** (path to “own model”): Llama 3.1/3.3 or Qwen2.5 — **strict JSON** action schema
+3. **DPO/ORPO preference adapter:** chosen human order vs rejected proposal
+4. **Distilled mini policy (optional):** 1–3B local proposer; teacher keeps explanations
+
+Do **not** start with RL on live dollars. PnL is noisy; use behavioral cloning + preferences first; bandit/RL only in paper shadow later.
+
+### Training job contract
+
+```http
+POST /api/lab/runs
+{
+  "datasetId": "ds_…",
+  "recipe": "baseline_ensemble | lora_sft | dpo",
+  "baseModel": "qwen2.5-14b-instruct",
+  "hyperparams": { "lr": 1e-4, "epochs": 3, "loraRank": 16 },
+  "splitSeed": 7
+}
+```
+
+Worker (Python alongside Node): pull JSONL/parquet → train → write metrics + `artifact_uri`.  
+Scripts required in repo: `scripts/train_baseline.py`, `scripts/train_lora.py` (CPU baseline must run without GPU).
+
+### Evaluation harness (required before Promote)
+
+Offline:
+- Action accuracy / macro-F1 (`trade` vs `no_trade`)
+- Conditional order-field exact-match when action=trade
+- Skip-F1 (treat skips as positive class of interest)
+- Schema validity %
+- Slice metrics: symbol, side, hour
+
+Paper shadow:
+- Candidate `π` proposes in parallel; no submit unless Shadow-Armed experiment
+- Compare to human approvals and ex-post PnL
+
+Promotion gates (all required):
+1. ≥ N labeled episodes (default 200; warn if <500 for LoRA)
+2. Val skip-F1 ≥ baseline + 0.05
+3. Schema validity ≥ 99%
+4. Shadow ≥ 20 sessions or 50 signals; risk contradiction rate ≤ 1%
+5. Human types `PROMOTE MODEL` + selects registry id
+6. Risk engine still wraps every order
+
+Rollback: one click; receipt written.
+
+### Desk inference routing
+```text
+features + context → active_policy.predict() → riskCheck() → Draft approval OR Armed submit
+```
+Invalid JSON / policy error → fallback teacher LLM Draft-only + Attention `policy_fallback`.
+
+### Trader Learning track (`/app/learn`)
+Parallel curriculum for the human (calm WeBuilt tone):
+1. Risk units & max daily loss
+2. Reading an approval card
+3. Writing a System Bible a model can imitate
+4. Labeling quality (Wrong > vibes)
+5. Reading eval reports (skip-F1, leakage, shadow)
+6. When to promote vs keep labeling
+
+Each lesson ends with a Train/Lab task. Checklist in Settings.
+
+### Model card (every registry entry)
+Name, stage L1–L5, base model, recipe, dataset hash/counts/range/split, metrics, failure slices, intended use (paper Draft / paper Armed / live Draft), explicit **not advice / no guarantees**.
+
+### Lab tables
+```text
+datasets(id, user_id, name, filter jsonb, row_count, hash, created_at)
+dataset_rows(id, dataset_id, episode jsonb)
+train_runs(id, dataset_id, recipe, base_model, status, metrics jsonb, artifact_uri, created_at)
+model_registry(id, user_id, run_id, name, stage, active boolean, card jsonb)
+shadow_predictions(id, model_id, signal_id, proposal jsonb, created_at)
+```
+
+### Phases 7–10 (after desk Phases 0–6)
+- **P7 Dataset flywheel** — export episodes, split preview, JSONL download
+- **P8 Baseline student** — train + eval + shadow logger
+- **P9 LoRA SFT** — adapter registry + Desk routing flag
+- **P10 DPO + promote/rollback + Learn curriculum**
+
+Do not start P9 until P8 beats prompt-only teacher on skip-F1 on held-out user data.
+
+### Ops
+- `MODEL_ARTIFACT_BUCKET` or `./artifacts` for dev
+- Document VRAM for LoRA in README
+- No secrets in artifact metadata
+
+### Safety
+- No training on data the user doesn’t own
+- No fabricating fills
+- Banner: paper ≠ future live
+- Models cannot disable risk gates, raise caps, or enable live
+
+### Acceptance criteria (Lab)
+- Export dataset from journal/feedback with train/val/test counts
+- Train baseline; open eval with skip-F1 vs teacher
+- Shadow proposals on paper signals without submitting
+- Promote only after gates + `PROMOTE MODEL`; rollback works
+- Learn checklist advances after labeling + first eval review
+- Active student still cannot bypass max daily loss
+
+### Copy
+- `Model Lab` · `Build dataset from journal` · `Train baseline student` · `Shadow (no capital)` · `Promote model` · `Rollback model`
+- `Your model · your labels · your risk gates`
+
+---
+
 ## CREDENTIALS
 
 Human provides later: Alpaca paper (then live) keys, TradingView alert setup, LLM API key.  
@@ -1726,6 +1946,6 @@ Human provides later: Alpaca paper (then live) keys, TradingView alert setup, LL
 
 ## FINAL INSTRUCTION TO THE BUILDER
 
-Execute as a contract engineer and principal designer. Ship Phase 0→6 in small commits. Prefer deleting chrome over adding widgets. When unsure, copy WeBuilt’s approval/receipt posture and apply it to orders. Charts are subordinate to triage, approvals, trainability, and truth in the journal.
+Execute as a contract engineer, principal designer, and AI model-training master. Ship Phase 0→6 first (desk truth), then 7→10 (owned model). Prefer deleting chrome over adding widgets. When unsure, copy WeBuilt’s approval/receipt posture and apply it to orders. Charts are subordinate to triage, approvals, trainability, and truth in the journal.
 
-You are not done when the pages render. You are done when Flow A works on paper, Train corrections stick, Analytics match the journal, and the UI would not be mistaken for a generic AI crypto dashboard.
+You are not done when the pages render. You are done when Flow A works on paper, Train corrections stick, Analytics match the journal, the UI would not be mistaken for a generic AI crypto dashboard, and Model Lab can turn the user’s labels into a **baseline student** that earns promotion only through eval gates — the path to their own trading model.
