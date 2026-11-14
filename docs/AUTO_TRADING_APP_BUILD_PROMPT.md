@@ -64,18 +64,41 @@ Build a full-stack **auto trading desk** product with UX patterned after **getwe
    Log every: signal received, proposal created, approval/rejection, order submitted, broker ack, fill, partial fill, cancel, reject, error, strategy arm/disarm, connection change, kill-switch use, **context pack save / activate / train-feedback**.
    Fields: `id, ts, actor (user|system|webhook), strategy_id?, signal_id?, intent, raw_payload, normalized_order, broker_order_id?, status, fills[], pnl_delta?, notes, ip/source, context_pack_ids[], context_version_hash?`
    UI: filterable ledger + export CSV
-7. **Dashboard surfaces (not a cluttered trading terminal)**
+7. **Trade Analytics (mandatory)**
+   - Dedicated **Analytics** view fed only from the trade journal + Alpaca reconciliations (paper and live tagged separately; never mix without an explicit toggle)
+   - **Summary KPIs** (range selectable: today / week / month / custom / all):
+     - Net P&L (realized), unrealized, fees/commissions if available
+     - Win rate, avg win, avg loss, profit factor, expectancy per trade
+     - Max drawdown (equity curve), current drawdown
+     - Trade count, avg hold time, avg R-multiple (when stop/target recorded)
+     - Approval latency (signal → approve → fill) for Draft-mode strategies
+   - **Breakdowns / filters:**
+     - By strategy, Context Pack version, symbol, side (long/short/call/put), session (pre/regular/after), day-of-week, hour-of-day
+     - By mode: Draft-approved vs Armed Auto vs manual
+     - By outcome tags from training feedback (Correct/Wrong/Almost) when linked
+   - **Charts (sparse, one job each — not a chart junkyard):**
+     - Equity curve (cumulative realized P&L)
+     - Daily P&L bars
+     - Win/loss distribution
+     - Optional: rolling win rate
+   - **Trade detail drill-down:** click any point/row → full receipt chain (signal → context used → approval → fills → exit) + notes
+   - **Streaks & risk:** consecutive losses, largest loser, % of days hitting max daily loss, kill-switch events
+   - **Export:** CSV + JSON for the filtered set; printable “day sheet” summary
+   - Assistant can answer analytics questions from the same aggregates (“What’s my ORB win rate this month?”) and must cite the filter range
+   - Empty states use clearly labeled fictional Sample analytics (never real money claims)
+8. **Dashboard surfaces (not a cluttered trading terminal)**
    - Needs attention (pending approvals, rejects, limit breaches)
    - Open risk (positions + options Greeks-lite if available; at least underlying, strike, expiry, qty, avg, mark, uPnL)
    - Today’s P&L + fill blotter
    - Strategies list with mode badges
    - Activity feed (receipts)
    - **Train** entry point with context budget meter + last training feedback
+   - **Analytics** snapshot strip: today P&L, win rate (week), drawdown — links to full Analytics view
 
 ### Architecture
 - **Frontend:** Next.js (App Router) + TypeScript + Tailwind. Expressive typography (not Inter/Roboto/system). Atmospheric background (subtle gradient/pattern), brand-first landing. Product app is calm and sparse — **no cards in the hero**; cards only for interactive approval/actions.
 - **Backend:** Next.js route handlers or separate Nest/Fastify service — pick one and keep it simple.
-- **DB:** Postgres (Prisma or Drizzle) for users, strategies, signals, orders, fills, audit_events, api_credentials (encrypted at rest), **context_packs, context_documents, context_versions, training_feedback**.
+- **DB:** Postgres (Prisma or Drizzle) for users, strategies, signals, orders, fills, audit_events, api_credentials (encrypted at rest), **context_packs, context_documents, context_versions, training_feedback**, plus materialized or cached **analytics daily rollups** (recompute from fills; never hand-edit).
 - **AI layer:** when proposing or answering trade questions, assemble prompt = system policy + active Context Pack version(s) (within budget) + account/positions snapshot + signal + hard risk limits. Persist the assembled context hash on every proposal.
 - **Queue/worker:** process webhooks → normalize → risk check → load strategy context → propose or execute; never block webhook ACK longer than needed (store raw, respond 200, process async).
 - **Secrets:** Alpaca keys, webhook secrets, and LLM API keys in env / secret manager; never log raw secrets or full prompt dumps containing secrets.
@@ -134,10 +157,11 @@ Build a full-stack **auto trading desk** product with UX patterned after **getwe
 2. Working paper-trading path: webhook → proposal → approve → Alpaca paper order → fill logged
 3. Strategy arm/disarm + kill switch
 4. **Train UI:** Context Packs, document editor, budget meter, strategy binding, version history, simulate-signal + Correct/Wrong/Almost feedback loop
-5. Full audit/trade log UI + CSV export (including context/training events)
-6. Seed fictional sample receipts + a sample Context Pack (“Demo ORB”) for empty states
-7. Minimal test suite: risk gates, webhook auth, order normalization, idempotency, context budget assembly, frozen version hash on arm
-8. `.env.example` with all required vars (including LLM provider key)
+5. **Analytics UI:** KPIs, equity curve, daily P&L, breakdowns by strategy/symbol/side/mode, drill-down to receipts, CSV/JSON export, paper vs live separation
+6. Full audit/trade log UI + CSV export (including context/training events)
+7. Seed fictional sample receipts + sample Context Pack (“Demo ORB”) + sample analytics for empty states
+8. Minimal test suite: risk gates, webhook auth, order normalization, idempotency, context budget assembly, frozen version hash on arm, **analytics rollups from fills**
+9. `.env.example` with all required vars (including LLM provider key)
 
 ### Acceptance criteria
 - I can create a strategy, paste a TradingView webhook URL, fire a test alert, see a pending approval, approve it, see a paper fill on Alpaca, and see every step in the trade log.
@@ -147,6 +171,8 @@ Build a full-stack **auto trading desk** product with UX patterned after **getwe
 - I can paste my trading system into **Train**, bind it to a strategy, simulate a signal, see a proposal that cites my rules, mark it Wrong with a correction, and the next simulation respects that correction.
 - Context budget meter is visible; over-budget packs warn and do not silently drop the System Bible.
 - Arming a strategy freezes the active context version hash on that strategy.
+- After several paper fills, Analytics shows correct net P&L, win rate, equity curve, and strategy breakdown; paper and live never mix unless I toggle “combine environments.”
+- Filtering Analytics and exporting CSV matches the on-screen rows; drilling a trade opens its full receipt chain.
 
 ### Credentials (provided by human later)
 - TradingView (alert webhook will be configured by user)
